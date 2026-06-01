@@ -50,6 +50,15 @@ Thumbs.db
 cache/
 output.txt.txt
 
+# Test / coverage artifacts
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
 # Media (uploaded/generated)
 *.jpg
 *.jpeg
