@@ -23,3 +23,29 @@ python_version = "3.11"
 ignore_missing_imports = true
 check_untyped_defs = false
 warn_unused_ignores = false
+
+[tool.coverage.run]
+source = ["src", "core", "routes"]
+branch = true
+omit = [
+    "tests/*",
+    "scripts/*",
+    "mcp_servers/*",
+    "*/__init__.py",
+]
+
+[tool.coverage.report]
+# Floor only — the suite is regression-focused (~8% today), so this guards
+# against coverage *dropping*, not a target. Ratchet upward as integration
+# tests land (see docs/plans/03-ci-pipeline.md and the routes refactor Phase 0).
+# Branch coverage is on, so the headline figure (~6.6%) is stricter than a
+# line-only number; the floor sits just below it to absorb cross-version noise.
+fail_under = 6
+show_missing = true
+skip_covered = false
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.:",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+]

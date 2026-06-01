@@ -48,7 +48,19 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt -r requirements-dev.txt
       - name: Run tests
-        run: pytest -q --cov=src --cov=core --cov=routes --cov-report=term-missing
+        run: pytest -q --cov --cov-report=term-missing --cov-report=xml
+      - name: Coverage summary
+        if: ${{ always() }}
+        run: |
+          echo "### Coverage (py${{ matrix.python-version }})" >> "$GITHUB_STEP_SUMMARY"
+          python -m coverage report --format=markdown >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload coverage XML
+        if: ${{ matrix.python-version == '3.11' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-xml
+          path: coverage.xml
+          if-no-files-found: warn
 
   typecheck:
     name: Type check (mypy)
