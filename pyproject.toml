@@ -1,3 +1,25 @@
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+# scripts/ are one-off operational utilities, not part of the served app.
+extend-exclude = ["scripts", "static/lib"]
+
+[tool.ruff.lint]
+# Day-1 scope: the high-signal "real bug" set only — syntax errors (E9),
+# comparison/assertion bugs (F63), syntax-level pyflakes (F7), and undefined
+# names / unbound locals (F82). This catches genuine defects without forcing a
+# repo-wide mechanical reformat on enablement. Tighten in follow-up PRs per the
+# roadmap in docs/plans/03-ci-pipeline.md (F401/I/UP/B, then E501).
+select = ["E9", "F63", "F7", "F82"]
+
+[tool.mypy]
+python_version = "3.11"
+# Progressive adoption: lenient defaults now, ratcheted per-module via
+# overrides as typing improves. See docs/plans/03-ci-pipeline.md.
+ignore_missing_imports = true
+check_untyped_defs = false
+warn_unused_ignores = false
