@@ -83,7 +83,10 @@ jobs:
             src/action_intents.py \
             src/text_helpers.py \
             src/exceptions.py \
-            src/model_context.py
+            src/model_context.py \
+            core/exceptions.py \
+            core/platform_compat.py \
+            core/constants.py
 
   typecheck:
     name: Type check (mypy, whole tree)

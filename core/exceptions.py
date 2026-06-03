@@ -1,6 +1,8 @@
 # src/exceptions.py
 """Custom exceptions for the application."""
 
+from typing import Optional
+
 
 class SessionNotFoundError(Exception):
     """Raised when a requested session is not found."""
@@ -13,7 +15,7 @@ class SessionNotFoundError(Exception):
 class InvalidFileUploadError(Exception):
     """Raised when a file upload fails validation."""
 
-    def __init__(self, message: str, filename: str = None):
+    def __init__(self, message: str, filename: Optional[str] = None):
         self.filename = filename
         self.message = message
         super().__init__(message)
@@ -22,7 +24,7 @@ class InvalidFileUploadError(Exception):
 class LLMServiceError(Exception):
     """Raised when there is an error communicating with the LLM service."""
 
-    def __init__(self, message: str, endpoint: str = None):
+    def __init__(self, message: str, endpoint: Optional[str] = None):
         self.endpoint = endpoint
         self.message = message
         super().__init__(message)
@@ -31,7 +33,7 @@ class LLMServiceError(Exception):
 class WebSearchError(Exception):
     """Raised when there is an error with web search functionality."""
 
-    def __init__(self, message: str, query: str = None):
+    def __init__(self, message: str, query: Optional[str] = None):
         self.query = query
         self.message = message
         super().__init__(message)

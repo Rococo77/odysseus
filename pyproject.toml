@@ -41,6 +41,9 @@ warn_unused_ignores = false
 #   src/text_helpers.py
 #   src/exceptions.py
 #   src/model_context.py
+#   core/exceptions.py
+#   core/platform_compat.py
+#   core/constants.py
 [[tool.mypy.overrides]]
 module = [
     "src.constants",
@@ -50,6 +53,9 @@ module = [
     "src.text_helpers",
     "src.exceptions",
     "src.model_context",
+    "core.exceptions",
+    "core.platform_compat",
+    "core.constants",
 ]
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
