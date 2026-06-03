@@ -1,4 +1,5 @@
 """Regression tests for native Ollama Cloud provider handling."""
+
 import httpx
 
 from src import llm_core

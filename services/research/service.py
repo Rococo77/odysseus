@@ -10,6 +10,7 @@ from .research_handler import ResearchHandler
 @dataclass
 class ResearchSource:
     """A source found during research."""
+
     url: str
     title: str
     snippet: str
@@ -19,6 +20,7 @@ class ResearchSource:
 @dataclass
 class ResearchResult:
     """Result of a deep research query."""
+
     query: str
     summary: str
     sources: List[ResearchSource] = field(default_factory=list)
@@ -63,6 +65,7 @@ class ResearchService:
             ResearchResult with findings
         """
         import time
+
         start = time.time()
 
         result = await self.handler.call_research_service(
@@ -104,9 +107,7 @@ class ResearchService:
         max_time: int = 300,
     ) -> dict:
         """Start research in background. Returns task info."""
-        return self.handler.start_research(
-            session_id, topic, llm_endpoint, llm_model, max_time
-        )
+        return self.handler.start_research(session_id, topic, llm_endpoint, llm_model, max_time)
 
     def get_status(self, session_id: str) -> Optional[dict]:
         """Get status of background research."""

@@ -38,7 +38,9 @@ from src.secret_storage import decrypt as _decrypt
 logger = logging.getLogger(__name__)
 
 
-def _send_smtp_message(cfg: dict, from_addr: str, recipients: list[str], message: str | bytes, timeout: int = 30) -> None:
+def _send_smtp_message(
+    cfg: dict, from_addr: str, recipients: list[str], message: str | bytes, timeout: int = 30
+) -> None:
     """Send through SMTP using the conventional TLS mode for the configured port.
 
     Account settings only store host/port today. Port 465 is implicit TLS
@@ -74,12 +76,21 @@ def _strip_think(text: str) -> str:
     """
     if not text:
         return ""
-    from src.text_helpers import strip_think as _central, _THINK_CLOSED_RE, _THINK_OPEN_RE, _THINK_TAG_RE
-    had_think = bool(_THINK_CLOSED_RE.search(text) or _THINK_OPEN_RE.search(text) or _THINK_TAG_RE.search(text))
+    from src.text_helpers import (
+        strip_think as _central,
+        _THINK_CLOSED_RE,
+        _THINK_OPEN_RE,
+        _THINK_TAG_RE,
+    )
+
+    had_think = bool(
+        _THINK_CLOSED_RE.search(text) or _THINK_OPEN_RE.search(text) or _THINK_TAG_RE.search(text)
+    )
     return _central(text, prose=had_think, prompt_echo=True)
 
 
 import re as _re_reply
+
 # Accept REPLY / SUMMARY / OUTPUT as the opening fence so the same extractor
 # serves replies and summaries (any fenced final-output block).
 _REPLY_OPEN_RE = _re_reply.compile(r"<<<\s*(?:REPLY|SUMMARY|OUTPUT)\s*>>>", _re_reply.I)
@@ -104,9 +115,9 @@ def _extract_reply(text: str) -> str:
     t = text
     m = _REPLY_OPEN_RE.search(t)
     if m:
-        rest = t[m.end():]
+        rest = t[m.end() :]
         c = _REPLY_CLOSE_RE.search(rest)
-        t = rest[:c.start()] if c else rest
+        t = rest[: c.start()] if c else rest
     # Drop any stray/duplicate marker tokens, then strip think markup.
     t = _REPLY_OPEN_RE.sub("", t)
     t = _REPLY_CLOSE_RE.sub("", t)
@@ -117,12 +128,7 @@ def _apply_email_style_mechanics(text: str) -> str:
     """Enforce deterministic writing-style mechanics that models often miss."""
     if not text:
         return ""
-    return (
-        text.replace("—", "--")
-        .replace("–", "--")
-        .replace("’", "'")
-        .replace("‘", "'")
-    )
+    return text.replace("—", "--").replace("–", "--").replace("’", "'").replace("‘", "'")
 
 
 def _require_auth(request: Request) -> str:
@@ -180,6 +186,7 @@ def _assert_owns_account(account_id: str, owner: str) -> None:
         return
     try:
         from core.database import SessionLocal as _SL, EmailAccount as _EA
+
         db = _SL()
         try:
             row = db.query(_EA).filter(_EA.id == account_id).first()
@@ -197,6 +204,7 @@ def _assert_owns_account(account_id: str, owner: str) -> None:
         # through. 503 tells the caller to retry; logs preserve detail.
         logger.error(f"Account-owner check failed: {e}")
         raise HTTPException(503, "Account check failed")
+
 
 def _q(name: str) -> str:
     """Quote an IMAP mailbox name. Defensive: escapes `\\` and `"` and wraps
@@ -249,7 +257,9 @@ SETTINGS_FILE = DATA_DIR / "settings.json"
 # Override at deploy time via ODYSSEUS_MAIL_ATTACHMENTS_DIR. Defaults to a
 # subdir of the install's data/ tree so the app works out-of-the-box without
 # a hardcoded /home/<user>/ path.
-ATTACHMENTS_DIR = Path(os.environ.get("ODYSSEUS_MAIL_ATTACHMENTS_DIR", str(DATA_DIR / "mail-attachments")))
+ATTACHMENTS_DIR = Path(
+    os.environ.get("ODYSSEUS_MAIL_ATTACHMENTS_DIR", str(DATA_DIR / "mail-attachments"))
+)
 ATTACHMENTS_DIR.mkdir(parents=True, exist_ok=True)
 COMPOSE_UPLOADS_DIR = ATTACHMENTS_DIR / "_compose"
 COMPOSE_UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
@@ -258,6 +268,7 @@ SCHEDULED_DB = DATA_DIR / "scheduled_emails.db"
 
 def _init_scheduled_db():
     import sqlite3
+
     conn = sqlite3.connect(SCHEDULED_DB)
     conn.execute("""
         CREATE TABLE IF NOT EXISTS scheduled_emails (
@@ -358,6 +369,7 @@ def _init_scheduled_db():
     except Exception as _mig_e:
         # Best-effort — log via the module logger if available
         import logging as _lg
+
         _lg.getLogger(__name__).warning(f"email_tags owner-migration skipped: {_mig_e}")
     conn.execute("""
         CREATE TABLE IF NOT EXISTS email_calendar_extractions (
@@ -450,6 +462,7 @@ def _load_settings():
 
 def _save_settings(settings):
     from core.atomic_io import atomic_write_json
+
     atomic_write_json(str(SETTINGS_FILE), settings, indent=2)
 
 
@@ -479,6 +492,7 @@ def _get_email_config(account_id: str | None = None, owner: str = "") -> dict:
         if not owner:
             return query
         from sqlalchemy import and_, or_
+
         unowned = or_(_EA.owner == None, _EA.owner == "")  # noqa: E711
         same_mailbox = or_(_EA.imap_user == owner, _EA.from_address == owner)
         return query.filter(or_(_EA.owner == owner, and_(unowned, same_mailbox)))
@@ -560,6 +574,7 @@ def _list_email_accounts() -> list[dict]:
     """Return all enabled accounts in creation order. Used by background loops
     that iterate over every account (auto-summarize, urgency, etc.)."""
     from core.database import SessionLocal as _SL, EmailAccount as _EA
+
     try:
         db = _SL()
         try:
@@ -580,6 +595,7 @@ def _list_email_accounts() -> list[dict]:
 # ── IMAP helpers ──
 
 _IMAP_TIMEOUT_SECONDS = 15
+
 
 def _imap_connect(account_id: str | None = None, owner: str = ""):
     # SECURITY: passing `owner` scopes the fallback config lookup so a brand
@@ -759,7 +775,11 @@ def _detect_spam_folder(conn):
                 preferred = name
                 break
             low = name.lower()
-            if low in ("junk", "spam", "junk mail", "junk e-mail") or low.endswith("/junk") or low.endswith("/spam"):
+            if (
+                low in ("junk", "spam", "junk mail", "junk e-mail")
+                or low.endswith("/junk")
+                or low.endswith("/spam")
+            ):
                 fallback = fallback or name
         return preferred or fallback
     except Exception:
@@ -799,6 +819,7 @@ def _extract_attachment_text(msg, max_chars: int = 6000) -> str:
     total = 0
     import os as _os
     import tempfile as _tempfile
+
     for part in msg.walk():
         if part.is_multipart():
             continue
@@ -827,13 +848,16 @@ def _extract_attachment_text(msg, max_chars: int = 6000) -> str:
                     tmp.write(payload)
                     tmp.close()
                     from src.personal_docs import extract_pdf_text
+
                     text = extract_pdf_text(tmp.name) or ""
                 finally:
                     try:
                         _os.unlink(tmp.name)
                     except Exception:
                         pass
-            elif ct.startswith("text/") or fname_lower.endswith((".txt", ".md", ".csv", ".log", ".json")):
+            elif ct.startswith("text/") or fname_lower.endswith(
+                (".txt", ".md", ".csv", ".log", ".json")
+            ):
                 text = payload.decode("utf-8", errors="replace")
         except Exception as e:
             logger.debug(f"attachment-text extract failed for {filename}: {e}")
@@ -875,13 +899,15 @@ def _list_attachments_from_msg(msg):
             filename = f"attachment_{idx}.{ext}"
         payload = part.get_payload(decode=True)
         size = len(payload) if payload else 0
-        attachments.append({
-            "index": idx,
-            "filename": filename,
-            "content_type": ct,
-            "size": size,
-            "is_inline": "inline" in cd.lower(),
-        })
+        attachments.append(
+            {
+                "index": idx,
+                "filename": filename,
+                "content_type": ct,
+                "size": size,
+                "is_inline": "inline" in cd.lower(),
+            }
+        )
         idx += 1
     return attachments
 
@@ -967,12 +993,14 @@ def _extract_text(msg):
     return ""
 
 
-def _fetch_sender_thread_context(sender_addr: str,
-                                 exclude_uid: str = "",
-                                 exclude_folder: str = "INBOX",
-                                 limit: int = 3,
-                                 max_chars_per_email: int = 1500,
-                                 max_attachment_chars: int = 4000) -> str:
+def _fetch_sender_thread_context(
+    sender_addr: str,
+    exclude_uid: str = "",
+    exclude_folder: str = "INBOX",
+    limit: int = 3,
+    max_chars_per_email: int = 1500,
+    max_attachment_chars: int = 4000,
+) -> str:
     """Pull the last N emails from `sender_addr` (across common folders),
     extract their body snippets + attachment text, and return one formatted
     block ready to be glued into an LLM system prompt as "REFERENCED MATERIAL".
@@ -1067,10 +1095,14 @@ def _fetch_sender_thread_context(sender_addr: str,
                     lines.append(atts_text)
                 blocks.append("\n".join(lines))
     finally:
-        try: conn.close()
-        except Exception: pass
-        try: conn.logout()
-        except Exception: pass
+        try:
+            conn.close()
+        except Exception:
+            pass
+        try:
+            conn.logout()
+        except Exception:
+            pass
 
     if not blocks:
         return ""
@@ -1092,9 +1124,30 @@ def _pre_retrieve_context(body: str, sender: str) -> tuple:
       - cap to 3 terms (was 4),
       - skip entirely for senders with no prior contact / no past mail.
     """
-    STOPWORDS = {"dear", "hello", "hi", "hey", "thanks", "thank", "regards",
-                 "best", "kind", "sincerely", "cheers", "the", "this", "that",
-                 "from", "subject", "re", "fwd", "yours", "my", "our", "your"}
+    STOPWORDS = {
+        "dear",
+        "hello",
+        "hi",
+        "hey",
+        "thanks",
+        "thank",
+        "regards",
+        "best",
+        "kind",
+        "sincerely",
+        "cheers",
+        "the",
+        "this",
+        "that",
+        "from",
+        "subject",
+        "re",
+        "fwd",
+        "yours",
+        "my",
+        "our",
+        "your",
+    }
     context_snippets = []
     terms_list = []
     try:
@@ -1104,6 +1157,7 @@ def _pre_retrieve_context(body: str, sender: str) -> tuple:
         is_known = False
         try:
             from routes.contacts_routes import _fetch_contacts
+
             for c in _fetch_contacts() or []:
                 if (c.get("email") or "").lower() == sender_addr:
                     is_known = True
@@ -1160,7 +1214,7 @@ def _pre_retrieve_context(body: str, sender: str) -> tuple:
                     continue
                 for term in terms_list:
                     try:
-                        safe_term = term.replace('"', '').replace('\\', '')
+                        safe_term = term.replace('"', "").replace("\\", "")
                         st, data2 = ctx_conn.search(None, "TEXT", f'"{safe_term}"')
                         if st != "OK" or not data2 or not data2[0]:
                             continue
@@ -1178,7 +1232,7 @@ def _pre_retrieve_context(body: str, sender: str) -> tuple:
                                 hdate = hmsg.get("Date", "")
                                 hbody = _extract_text(hmsg)[:600]
                                 context_snippets.append(
-                                    f"[{folder} match for \"{term}\"]\nFrom: {hfrom}\nDate: {hdate}\nSubject: {hsubj}\n{hbody}"
+                                    f'[{folder} match for "{term}"]\nFrom: {hfrom}\nDate: {hdate}\nSubject: {hsubj}\n{hbody}'
                                 )
                             except Exception:
                                 continue
@@ -1194,19 +1248,23 @@ def _pre_retrieve_context(body: str, sender: str) -> tuple:
 
         try:
             from routes.contacts_routes import _fetch_contacts
+
             all_contacts = _fetch_contacts()
             for term in terms_list:
                 t_lower = term.lower()
-                matches = [c for c in all_contacts
-                           if t_lower in (c.get("name") or "").lower()
-                           or t_lower in (c.get("email") or "").lower()]
+                matches = [
+                    c
+                    for c in all_contacts
+                    if t_lower in (c.get("name") or "").lower()
+                    or t_lower in (c.get("email") or "").lower()
+                ]
                 for c in matches[:2]:
-                    parts = [f"Name: {c.get('name','')}"]
+                    parts = [f"Name: {c.get('name', '')}"]
                     if c.get("email"):
                         parts.append(f"Email: {c['email']}")
                     if c.get("phone"):
                         parts.append(f"Phone: {c['phone']}")
-                    context_snippets.append(f"[Contact match for \"{term}\"] " + ", ".join(parts))
+                    context_snippets.append(f'[Contact match for "{term}"] ' + ", ".join(parts))
         except Exception:
             pass
     except Exception as e:
@@ -1247,6 +1305,7 @@ _EMAIL_REPLY_SYS_PROMPT_BASE = (
 
 
 # ── Request models ──
+
 
 class SendEmailRequest(BaseModel):
     to: str

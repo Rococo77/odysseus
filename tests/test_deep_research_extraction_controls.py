@@ -22,8 +22,7 @@ class _ControlledResearcher(DeepResearcher):
 
     async def _search(self, query):
         return [
-            {"url": f"https://example.test/{query}/{i}", "title": f"{query}-{i}"}
-            for i in range(4)
+            {"url": f"https://example.test/{query}/{i}", "title": f"{query}-{i}"} for i in range(4)
         ]
 
     async def _fetch_and_extract(self, url, question, title):
@@ -74,11 +73,13 @@ async def test_fetch_and_extract_uses_configured_timeout(monkeypatch):
 
     async def fake_llm(messages, temperature=0.3, max_tokens=4096, timeout=60):
         captured["timeout"] = timeout
-        return json.dumps({
-            "rational": "relevant",
-            "evidence": "evidence",
-            "summary": "useful page content",
-        })
+        return json.dumps(
+            {
+                "rational": "relevant",
+                "evidence": "evidence",
+                "summary": "useful page content",
+            }
+        )
 
     researcher._llm = fake_llm
 

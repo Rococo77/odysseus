@@ -52,9 +52,8 @@ def detached_popen_kwargs() -> dict:
     and is detached from any console.
     """
     if IS_WINDOWS:
-        flags = (
-            getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0x00000200)
-            | getattr(subprocess, "DETACHED_PROCESS", 0x00000008)
+        flags = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0x00000200) | getattr(
+            subprocess, "DETACHED_PROCESS", 0x00000008
         )
         return {"creationflags": flags}
     return {"start_new_session": True}
@@ -78,9 +77,7 @@ def pid_alive(pid: Optional[int]) -> bool:
         PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
         STILL_ACTIVE = 259
         kernel32 = ctypes.windll.kernel32
-        handle = kernel32.OpenProcess(
-            PROCESS_QUERY_LIMITED_INFORMATION, False, int(pid)
-        )
+        handle = kernel32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, int(pid))
         if not handle:
             return False
         try:

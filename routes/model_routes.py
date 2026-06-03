@@ -1,5 +1,6 @@
 # routes/model_routes.py
 """Routes for model and provider management."""
+
 import re
 import uuid
 import json
@@ -40,7 +41,11 @@ def _ollama_api_root(base: str) -> str:
     if path.endswith("/api"):
         return base
     if host.endswith("ollama.com"):
-        root = f"{parsed.scheme}://{parsed.netloc}" if parsed.scheme and parsed.netloc else "https://ollama.com"
+        root = (
+            f"{parsed.scheme}://{parsed.netloc}"
+            if parsed.scheme and parsed.netloc
+            else "https://ollama.com"
+        )
         return root.rstrip("/") + "/api"
     return base
 
@@ -75,32 +80,61 @@ def _provider_headers(api_key: Optional[str], base: str) -> Dict[str, str]:
 # A model ID matches if it starts with or equals a curated entry.
 _PROVIDER_CURATED = {
     "openai": [
-        "gpt-5.2", "gpt-5.2-pro", "gpt-5", "gpt-5-pro", "gpt-5-mini", "gpt-5-nano",
-        "gpt-4o", "gpt-4o-mini", "o3", "o4-mini", "gpt-4.1", "gpt-4.1-mini", "gpt-4.1-nano",
-        "gpt-image-1.5", "gpt-image-1", "dall-e-3", "tts-1", "whisper-1",
+        "gpt-5.2",
+        "gpt-5.2-pro",
+        "gpt-5",
+        "gpt-5-pro",
+        "gpt-5-mini",
+        "gpt-5-nano",
+        "gpt-4o",
+        "gpt-4o-mini",
+        "o3",
+        "o4-mini",
+        "gpt-4.1",
+        "gpt-4.1-mini",
+        "gpt-4.1-nano",
+        "gpt-image-1.5",
+        "gpt-image-1",
+        "dall-e-3",
+        "tts-1",
+        "whisper-1",
     ],
     "anthropic": [
-        "claude-sonnet-4", "claude-opus-4", "claude-haiku-4",
-        "claude-sonnet-4-5", "claude-haiku-3-5",
+        "claude-sonnet-4",
+        "claude-opus-4",
+        "claude-haiku-4",
+        "claude-sonnet-4-5",
+        "claude-haiku-3-5",
     ],
     "zai": [
-        "glm-5", "glm-4.7", "glm-4.7-flash",
-        "glm-4.6", "glm-4.6v",
-        "glm-4.5", "glm-4.5v", "glm-4.5-air", "glm-4.5-flash",
+        "glm-5",
+        "glm-4.7",
+        "glm-4.7-flash",
+        "glm-4.6",
+        "glm-4.6v",
+        "glm-4.5",
+        "glm-4.5v",
+        "glm-4.5-air",
+        "glm-4.5-flash",
     ],
     "deepseek": [
-        "deepseek-chat", "deepseek-reasoner",
+        "deepseek-chat",
+        "deepseek-reasoner",
     ],
     "groq": [
-        "openai/gpt-oss-120b", "openai/gpt-oss-20b",
-        "groq/compound", "groq/compound-mini",
+        "openai/gpt-oss-120b",
+        "openai/gpt-oss-20b",
+        "groq/compound",
+        "groq/compound-mini",
         "llama-3.1-8b-instant",
         "llama-3.3-70b-versatile",
         "llama-4-scout-17b-16e-instruct",
         "llama-4-maverick-17b-128e-instruct",
     ],
     "mistral": [
-        "mistral-large-latest", "mistral-medium-latest", "mistral-small-latest",
+        "mistral-large-latest",
+        "mistral-medium-latest",
+        "mistral-small-latest",
     ],
     "together": [
         "meta-llama/Llama-4-Scout-17B-16E-Instruct",
@@ -114,11 +148,19 @@ _PROVIDER_CURATED = {
         "accounts/fireworks/models/deepseek-r1",
     ],
     "google": [
-        "gemini-3.5", "gemini-3.1", "gemini-3",
-        "gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.0-flash",
+        "gemini-3.5",
+        "gemini-3.1",
+        "gemini-3",
+        "gemini-2.5-flash",
+        "gemini-2.5-pro",
+        "gemini-2.0-flash",
     ],
     "xai": [
-        "grok-4.3", "grok-4", "grok-4-fast", "grok-3", "grok-3-fast",
+        "grok-4.3",
+        "grok-4",
+        "grok-4-fast",
+        "grok-3",
+        "grok-3-fast",
     ],
 }
 
@@ -161,6 +203,7 @@ def _curate_models(model_ids, provider):
         return model_ids, []
     curated = []
     extra = []
+
     def _best_match_idx(mid):
         """Return index of the longest matching curated entry, or -1."""
         best_i, best_len = -1, 0
@@ -185,12 +228,24 @@ def _truthy(value: str | None) -> bool:
 
 # Prefixes/substrings for models that are NOT chat-completions-capable
 _NON_CHAT_PREFIXES = (
-    "dall-e", "tts-", "whisper", "text-embedding", "embedding",
-    "davinci", "babbage", "moderation", "omni-moderation",
-    "sora", "gpt-image", "chatgpt-image",
+    "dall-e",
+    "tts-",
+    "whisper",
+    "text-embedding",
+    "embedding",
+    "davinci",
+    "babbage",
+    "moderation",
+    "omni-moderation",
+    "sora",
+    "gpt-image",
+    "chatgpt-image",
 )
 _NON_CHAT_CONTAINS = (
-    "-realtime", "-transcribe", "-tts", "-codex",
+    "-realtime",
+    "-transcribe",
+    "-tts",
+    "-codex",
     "codex-",
 )
 _NON_CHAT_EXACT_PREFIXES = (
@@ -214,7 +269,9 @@ def _is_chat_model(model_id: str) -> bool:
     return True
 
 
-def _probe_single_model(base: str, api_key: str, model_id: str, timeout: int = 10, with_tools: bool = False) -> dict:
+def _probe_single_model(
+    base: str, api_key: str, model_id: str, timeout: int = 10, with_tools: bool = False
+) -> dict:
     """Send a realistic completion request to a single model. Returns {status, latency_ms, error?}."""
     provider = _detect_provider(base)
     messages = [
@@ -222,18 +279,43 @@ def _probe_single_model(base: str, api_key: str, model_id: str, timeout: int = 1
         {"role": "user", "content": "Say OK"},
     ]
     # Simple tool definition to test tool support
-    _test_tools = [{"type": "function", "function": {"name": "test", "description": "Test tool", "parameters": {"type": "object", "properties": {}}}}] if with_tools else None
+    _test_tools = (
+        [
+            {
+                "type": "function",
+                "function": {
+                    "name": "test",
+                    "description": "Test tool",
+                    "parameters": {"type": "object", "properties": {}},
+                },
+            }
+        ]
+        if with_tools
+        else None
+    )
 
     if provider == "anthropic":
-        from src.llm_core import _normalize_anthropic_url, _build_anthropic_headers, _build_anthropic_payload
+        from src.llm_core import (
+            _normalize_anthropic_url,
+            _build_anthropic_headers,
+            _build_anthropic_payload,
+        )
+
         target_url = _normalize_anthropic_url(base)
         auth_headers = {"Authorization": f"Bearer {api_key}"} if api_key else {}
         h = _build_anthropic_headers(auth_headers)
         payload = _build_anthropic_payload(model_id, messages, 0.0, 5)
         if _test_tools:
-            payload["tools"] = [{"name": "test", "description": "Test tool", "input_schema": {"type": "object", "properties": {}}}]
+            payload["tools"] = [
+                {
+                    "name": "test",
+                    "description": "Test tool",
+                    "input_schema": {"type": "object", "properties": {}},
+                }
+            ]
     elif provider == "ollama":
         from src.llm_core import _build_ollama_payload
+
         target_url = build_chat_url(base)
         h = _provider_headers(api_key, base)
         h["Content-Type"] = "application/json"
@@ -243,7 +325,10 @@ def _probe_single_model(base: str, api_key: str, model_id: str, timeout: int = 1
         h = _provider_headers(api_key, base)
         h["Content-Type"] = "application/json"
         from src.llm_core import _uses_max_completion_tokens
-        _max_key = "max_completion_tokens" if _uses_max_completion_tokens(model_id) else "max_tokens"
+
+        _max_key = (
+            "max_completion_tokens" if _uses_max_completion_tokens(model_id) else "max_tokens"
+        )
         payload = {"model": model_id, "messages": messages, _max_key: 5, "temperature": 0.0}
         if _test_tools:
             payload["tools"] = _test_tools
@@ -269,17 +354,37 @@ def _probe_single_model(base: str, api_key: str, model_id: str, timeout: int = 1
                 pass
             return {"status": "fail", "latency_ms": latency, "error": error_msg}
     except httpx.TimeoutException:
-        return {"status": "timeout", "latency_ms": timeout * 1000, "error": f"Timed out ({timeout}s)"}
+        return {
+            "status": "timeout",
+            "latency_ms": timeout * 1000,
+            "error": f"Timed out ({timeout}s)",
+        }
     except Exception as e:
         return {"status": "fail", "error": str(e)[:80]}
 
 
 # Hostnames / IP prefixes that indicate a local endpoint
 _LOCAL_HOSTS = {"localhost", "127.0.0.1", "0.0.0.0", "::1"}
-_PRIVATE_PREFIXES = ("10.", "172.16.", "172.17.", "172.18.", "172.19.",
-                     "172.20.", "172.21.", "172.22.", "172.23.", "172.24.",
-                     "172.25.", "172.26.", "172.27.", "172.28.", "172.29.",
-                     "172.30.", "172.31.", "192.168.")
+_PRIVATE_PREFIXES = (
+    "10.",
+    "172.16.",
+    "172.17.",
+    "172.18.",
+    "172.19.",
+    "172.20.",
+    "172.21.",
+    "172.22.",
+    "172.23.",
+    "172.24.",
+    "172.25.",
+    "172.26.",
+    "172.27.",
+    "172.28.",
+    "172.29.",
+    "172.30.",
+    "172.31.",
+    "192.168.",
+)
 
 
 _TAILSCALE_RE = re.compile(r"^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\.")
@@ -300,11 +405,11 @@ def _classify_endpoint(base_url: str) -> str:
     return "api"
 
 
-
 def _probe_endpoint(base_url: str, api_key: str = None, timeout: int = 5) -> List[str]:
     """Probe a base URL's /models endpoint and return list of model IDs.
     For Anthropic, queries their /v1/models API, falling back to hardcoded list."""
     from src.endpoint_resolver import resolve_url
+
     base = resolve_url(_normalize_base(base_url))
     if _detect_provider(base) == "anthropic":
         # Try Anthropic's /v1/models endpoint first
@@ -341,7 +446,11 @@ def _probe_endpoint(base_url: str, api_key: str = None, timeout: int = 5) -> Lis
         models = [m.get("id") for m in (data.get("data") or []) if m.get("id")]
         # Ollama format: {"models": [{"name": "model-name"}]}
         if not models:
-            models = [m.get("name") or m.get("model") for m in (data.get("models") or []) if m.get("name") or m.get("model")]
+            models = [
+                m.get("name") or m.get("model")
+                for m in (data.get("models") or [])
+                if m.get("name") or m.get("model")
+            ]
         if models:
             return models
     except httpx.HTTPStatusError as e:
@@ -365,7 +474,11 @@ def _probe_endpoint(base_url: str, api_key: str = None, timeout: int = 5) -> Lis
             r = httpx.get(root + "/api/tags", timeout=timeout)
             r.raise_for_status()
             data = r.json()
-            models = [m.get("name") or m.get("model") for m in (data.get("models") or []) if m.get("name") or m.get("model")]
+            models = [
+                m.get("name") or m.get("model")
+                for m in (data.get("models") or [])
+                if m.get("name") or m.get("model")
+            ]
             if models:
                 return models
     except Exception as e:
@@ -382,6 +495,7 @@ def _probe_endpoint(base_url: str, api_key: str = None, timeout: int = 5) -> Lis
 def _ping_endpoint(base_url: str, api_key: str = None, timeout: float = 1.5) -> Dict[str, Any]:
     """Reachability probe that does not require installed/listed models."""
     from src.endpoint_resolver import resolve_url
+
     base = resolve_url(_normalize_base(base_url))
     headers = {}
     if api_key:
@@ -398,9 +512,17 @@ def _ping_endpoint(base_url: str, api_key: str = None, timeout: float = 1.5) -> 
                     "status_code": r.status_code,
                     "error": "That is Odysseus, not a model server. Use the Ollama URL, usually http://host.docker.internal:11434/v1 in Docker.",
                 }
-            return {"reachable": False, "status_code": r.status_code, "error": f"HTTP {r.status_code} redirect"}
+            return {
+                "reachable": False,
+                "status_code": r.status_code,
+                "error": f"HTTP {r.status_code} redirect",
+            }
         if r.status_code < 500:
-            return {"reachable": r.status_code < 400, "status_code": r.status_code, "error": None if r.status_code < 400 else f"HTTP {r.status_code}"}
+            return {
+                "reachable": r.status_code < 400,
+                "status_code": r.status_code,
+                "error": None if r.status_code < 400 else f"HTTP {r.status_code}",
+            }
     except Exception as e:
         last_error = str(e)[:120]
     else:
@@ -429,6 +551,7 @@ def setup_model_routes(model_discovery):
 
     # ---- Model list cache ----
     import time as _time
+
     # Per-user cache: { owner_key: {"data": ..., "time": ...} }. owner_key is
     # the username (or "" for the unconfigured / single-user case). Without
     # this every user shared the same cached result and the picker showed
@@ -454,6 +577,7 @@ def setup_model_routes(model_discovery):
         probes against many endpoints (some offline) tied up the threadpool
         for 15-30s every cache cycle, eventually exhausting it."""
         import threading
+
         if _refresh_inflight["v"]:
             return  # already running
         _refresh_inflight["v"] = True
@@ -461,9 +585,12 @@ def setup_model_routes(model_discovery):
         def _do():
             try:
                 from concurrent.futures import ThreadPoolExecutor, as_completed
+
                 db = SessionLocal()
                 try:
-                    endpoints = db.query(ModelEndpoint).filter(ModelEndpoint.is_enabled == True).all()
+                    endpoints = (
+                        db.query(ModelEndpoint).filter(ModelEndpoint.is_enabled == True).all()
+                    )
                     # Skip endpoints that have failed 3+ times in a row in the last 5 min
                     now = _time.time()
                     to_probe = []
@@ -501,6 +628,7 @@ def setup_model_routes(model_discovery):
                 pass
             finally:
                 _refresh_inflight["v"] = False
+
         threading.Thread(target=_do, daemon=True).start()
 
     def _fetch_models(owner: str = "", is_admin: bool = False):
@@ -553,35 +681,39 @@ def setup_model_routes(model_discovery):
             if model_ids:
                 curated_key = _match_provider_curated(base, None)
                 curated, extra = _curate_models(model_ids, curated_key)
-                items.append({
-                    "host": "custom",
-                    "port": 0,
-                    "url": chat_url,
-                    "models": curated,
-                    "models_display": [mid.split("/")[-1] for mid in curated],
-                    "models_extra": extra,
-                    "models_extra_display": [mid.split("/")[-1] for mid in extra],
-                    "endpoint_id": ep.id,
-                    "endpoint_name": ep.name,
-                    "category": category,
-                    "model_type": ep_model_type,
-                })
+                items.append(
+                    {
+                        "host": "custom",
+                        "port": 0,
+                        "url": chat_url,
+                        "models": curated,
+                        "models_display": [mid.split("/")[-1] for mid in curated],
+                        "models_extra": extra,
+                        "models_extra_display": [mid.split("/")[-1] for mid in extra],
+                        "endpoint_id": ep.id,
+                        "endpoint_name": ep.name,
+                        "category": category,
+                        "model_type": ep_model_type,
+                    }
+                )
             else:
                 # Endpoint unreachable but still show it greyed out
-                items.append({
-                    "host": "custom",
-                    "port": 0,
-                    "url": chat_url,
-                    "models": [],
-                    "models_display": [],
-                    "models_extra": [],
-                    "models_extra_display": [],
-                    "endpoint_id": ep.id,
-                    "endpoint_name": ep.name,
-                    "category": category,
-                    "model_type": ep_model_type,
-                    "offline": True,
-                })
+                items.append(
+                    {
+                        "host": "custom",
+                        "port": 0,
+                        "url": chat_url,
+                        "models": [],
+                        "models_display": [],
+                        "models_extra": [],
+                        "models_extra_display": [],
+                        "endpoint_id": ep.id,
+                        "endpoint_name": ep.name,
+                        "category": category,
+                        "model_type": ep_model_type,
+                        "offline": True,
+                    }
+                )
 
         return {"hosts": [], "items": items}
 
@@ -593,6 +725,7 @@ def setup_model_routes(model_discovery):
         # "see everything" by _fetch_models.
         try:
             from src.auth_helpers import get_current_user as _gcu
+
             owner = _gcu(request) or ""
         except Exception:
             owner = ""
@@ -620,7 +753,11 @@ def setup_model_routes(model_discovery):
         # serve the wrong scoped view from cache.
         _cache_key = (owner, _is_admin)
         cache_entry = _models_cache.get(_cache_key)
-        if not refresh and cache_entry is not None and (now - cache_entry["time"]) < _MODELS_CACHE_TTL:
+        if (
+            not refresh
+            and cache_entry is not None
+            and (now - cache_entry["time"]) < _MODELS_CACHE_TTL
+        ):
             return cache_entry["data"]
         result = _fetch_models(owner=owner, is_admin=_is_admin)
         _models_cache[_cache_key] = {"data": result, "time": now}
@@ -644,8 +781,10 @@ def setup_model_routes(model_discovery):
         {ep_id: {alive, latency_ms, error}}."""
         require_admin(request)
         now = _time.time()
-        if (_local_probe_cache["data"] is not None and
-                (now - _local_probe_cache["time"]) < _LOCAL_PROBE_TTL):
+        if (
+            _local_probe_cache["data"] is not None
+            and (now - _local_probe_cache["time"]) < _LOCAL_PROBE_TTL
+        ):
             return _local_probe_cache["data"]
 
         db = SessionLocal()
@@ -671,9 +810,15 @@ def setup_model_routes(model_discovery):
                     "error": None if models else "No models found",
                 }
             except Exception as e:
-                return {"alive": False, "latency_ms": None, "status_code": None, "error": str(e)[:120]}
+                return {
+                    "alive": False,
+                    "latency_ms": None,
+                    "status_code": None,
+                    "error": str(e)[:120],
+                }
 
         import asyncio as _asyncio
+
         results_list = await _asyncio.gather(
             *[_probe_one(eid, base, key) for eid, base, key in local_eps],
             return_exceptions=False,
@@ -764,7 +909,9 @@ def setup_model_routes(model_discovery):
                 ep_id = item.get("endpoint_id", "")
                 model_id = item.get("model", "")
                 if not model_id:
-                    results.append({"model": model_id, "status": "fail", "error": "No model specified"})
+                    results.append(
+                        {"model": model_id, "status": "fail", "error": "No model specified"}
+                    )
                     continue
 
                 # Cache endpoint lookups
@@ -779,12 +926,16 @@ def setup_model_routes(model_discovery):
                     if endpoint_url:
                         ep_data = {"base_url": endpoint_url, "api_key": item.get("api_key", "")}
                     else:
-                        results.append({"model": model_id, "status": "fail", "error": "Endpoint not found"})
+                        results.append(
+                            {"model": model_id, "status": "fail", "error": "Endpoint not found"}
+                        )
                         continue
 
                 base = _normalize_base(ep_data["base_url"])
                 _with_tools = item.get("with_tools", False)
-                result = _probe_single_model(base, ep_data.get("api_key"), model_id, timeout=8, with_tools=_with_tools)
+                result = _probe_single_model(
+                    base, ep_data.get("api_key"), model_id, timeout=8, with_tools=_with_tools
+                )
                 result["model"] = model_id
                 result["endpoint_id"] = ep_id
                 results.append(result)
@@ -806,18 +957,22 @@ def setup_model_routes(model_discovery):
             # Detach from session
             ep_data = []
             for ep in endpoints:
-                ep_data.append({
-                    "id": ep.id,
-                    "name": ep.name,
-                    "base_url": ep.base_url,
-                    "api_key": ep.api_key,
-                })
+                ep_data.append(
+                    {
+                        "id": ep.id,
+                        "name": ep.name,
+                        "base_url": ep.base_url,
+                        "api_key": ep.api_key,
+                    }
+                )
         finally:
             db.close()
 
         if not ep_data:
+
             def _empty():
                 yield f"data: {json.dumps({'type': 'probe_done', 'total': 0, 'ok': 0})}\n\n"
+
             return StreamingResponse(_empty(), media_type="text/event-stream")
 
         def _stream():
@@ -830,7 +985,9 @@ def setup_model_routes(model_discovery):
                 if all_models:
                     db2 = SessionLocal()
                     try:
-                        ep_obj = db2.query(ModelEndpoint).filter(ModelEndpoint.id == ep["id"]).first()
+                        ep_obj = (
+                            db2.query(ModelEndpoint).filter(ModelEndpoint.id == ep["id"]).first()
+                        )
                         if ep_obj:
                             ep_obj.cached_models = json.dumps(all_models)
                             db2.commit()
@@ -868,7 +1025,11 @@ def setup_model_routes(model_discovery):
     def providers(refresh: bool = False):
         """Get all available providers (cached for 30s)."""
         now = _time.time()
-        if not refresh and _providers_cache["data"] is not None and (now - _providers_cache["time"]) < _PROVIDERS_CACHE_TTL:
+        if (
+            not refresh
+            and _providers_cache["data"] is not None
+            and (now - _providers_cache["time"]) < _PROVIDERS_CACHE_TTL
+        ):
             return _providers_cache["data"]
         result = model_discovery.get_providers()
         _providers_cache["data"] = result
@@ -911,20 +1072,22 @@ def setup_model_routes(model_discovery):
                     ping = _ping_endpoint(r.base_url, r.api_key, timeout=1.0)
                     if ping.get("reachable"):
                         status = "empty"
-                results.append({
-                    "id": r.id,
-                    "name": r.name,
-                    "base_url": r.base_url,
-                    "has_key": bool(r.api_key),
-                    "is_enabled": r.is_enabled,
-                    "models": visible,
-                    "hidden_count": len(hidden),
-                    "online": status != "offline",
-                    "status": status,
-                    "ping_error": (ping or {}).get("error") if ping else None,
-                    "model_type": getattr(r, "model_type", None) or "llm",
-                    "supports_tools": getattr(r, "supports_tools", None),
-                })
+                results.append(
+                    {
+                        "id": r.id,
+                        "name": r.name,
+                        "base_url": r.base_url,
+                        "has_key": bool(r.api_key),
+                        "is_enabled": r.is_enabled,
+                        "models": visible,
+                        "hidden_count": len(hidden),
+                        "online": status != "offline",
+                        "status": status,
+                        "ping_error": (ping or {}).get("error") if ping else None,
+                        "model_type": getattr(r, "model_type", None) or "llm",
+                        "supports_tools": getattr(r, "supports_tools", None),
+                    }
+                )
             return results
         finally:
             db.close()
@@ -949,12 +1112,13 @@ def setup_model_routes(model_discovery):
         # Normalize: strip trailing /models, /chat/completions, /v1/messages etc to get clean base
         for suffix in ["/models", "/chat/completions", "/completions", "/v1/messages"]:
             if base_url.endswith(suffix):
-                base_url = base_url[:-len(suffix)].rstrip("/")
+                base_url = base_url[: -len(suffix)].rstrip("/")
         base_url = _normalize_base(base_url)
         if not base_url:
             raise HTTPException(400, "Base URL is required")
         # Resolve hostname via Tailscale if DNS fails
         from src.endpoint_resolver import resolve_url
+
         base_url = resolve_url(base_url)
 
         # Auto-generate name from URL if not provided
@@ -969,6 +1133,7 @@ def setup_model_routes(model_discovery):
         # instead of creating a duplicate row. Fixes "Scan for Servers"
         # re-adding manually-added endpoints under their host:port name.
         from src.auth_helpers import get_current_user as _gcu_dedup
+
         _caller = _gcu_dedup(request) or None
         _db_dedup = SessionLocal()
         try:
@@ -994,7 +1159,11 @@ def setup_model_routes(model_discovery):
 
         # Quick model list fetch (1s timeout — if endpoint is slow, it'll update on next refresh)
         _probe_timeout = 3 if (":11434" in base_url or "ollama" in base_url.lower()) else 1
-        model_ids = _probe_endpoint(base_url, api_key.strip() or None, timeout=_probe_timeout) if should_probe else []
+        model_ids = (
+            _probe_endpoint(base_url, api_key.strip() or None, timeout=_probe_timeout)
+            if should_probe
+            else []
+        )
         ping = {"reachable": False, "error": None}
         if should_probe and not model_ids:
             ping = _ping_endpoint(base_url, api_key.strip() or None, timeout=_probe_timeout)
@@ -1005,12 +1174,17 @@ def setup_model_routes(model_discovery):
         db = SessionLocal()
         try:
             _st_raw = (supports_tools or "").strip().lower()
-            _st = True if _st_raw in ("true", "1", "yes") else (False if _st_raw in ("false", "0", "no") else None)
+            _st = (
+                True
+                if _st_raw in ("true", "1", "yes")
+                else (False if _st_raw in ("false", "0", "no") else None)
+            )
             # Stamp owner so the picker only shows this endpoint to the admin
             # who added it. Pass `shared=true` to mark it null-owner (visible
             # to all users), preserving the pre-fix "everyone sees everything"
             # behaviour for endpoints the admin explicitly intends to share.
             from src.auth_helpers import get_current_user as _gcu
+
             _shared_flag = (shared or "").strip().lower() in ("true", "1", "yes")
             _owner_val = None if _shared_flag else (_gcu(request) or None)
             ep = ModelEndpoint(
@@ -1058,14 +1232,19 @@ def setup_model_routes(model_discovery):
         base_url = base_url.strip().rstrip("/")
         for suffix in ["/models", "/chat/completions", "/completions", "/v1/messages"]:
             if base_url.endswith(suffix):
-                base_url = base_url[:-len(suffix)].rstrip("/")
+                base_url = base_url[: -len(suffix)].rstrip("/")
         if not base_url:
             raise HTTPException(400, "Base URL is required")
         from src.endpoint_resolver import resolve_url
+
         base_url = resolve_url(base_url)
         probe_timeout = 3 if (":11434" in base_url or "ollama" in base_url.lower()) else 2
         models = _probe_endpoint(base_url, api_key.strip() or None, timeout=probe_timeout)
-        ping = {"reachable": True, "error": None} if models else _ping_endpoint(base_url, api_key.strip() or None, timeout=probe_timeout)
+        ping = (
+            {"reachable": True, "error": None}
+            if models
+            else _ping_endpoint(base_url, api_key.strip() or None, timeout=probe_timeout)
+        )
         return {
             "base_url": base_url,
             "online": bool(models) or bool(ping.get("reachable")),
@@ -1150,8 +1329,7 @@ def setup_model_routes(model_discovery):
                 except Exception:
                     pass
             return [
-                {"id": m, "display": m.split("/")[-1], "is_hidden": m in hidden}
-                for m in all_models
+                {"id": m, "display": m.split("/")[-1], "is_hidden": m in hidden} for m in all_models
             ]
         finally:
             db.close()
@@ -1182,6 +1360,7 @@ def setup_model_routes(model_discovery):
     @router.get("/default-chat")
     def get_default_chat(request: Request):
         import json as _json
+
         # SECURITY: resolve the default endpoint + model from the CALLER's
         # per-user prefs ONLY. We deliberately do NOT fall back to the
         # global `default_model` / `default_endpoint_id` in settings.json
@@ -1191,6 +1370,7 @@ def setup_model_routes(model_discovery):
         # lookup below (last-resort: first enabled endpoint THIS user owns).
         # Unauthenticated single-user mode keeps the old behavior.
         from src.auth_helpers import get_current_user as _gcu
+
         try:
             _user = _gcu(request) or ""
         except Exception:
@@ -1210,6 +1390,7 @@ def setup_model_routes(model_discovery):
             _is_admin = False
         if _user and not _is_admin:
             from routes.prefs_routes import _load_for_user
+
             _user_prefs = _load_for_user(_user) or {}
             ep_id = (_user_prefs.get("default_endpoint_id") or "").strip()
             model = (_user_prefs.get("default_model") or "").strip()
@@ -1275,7 +1456,11 @@ def setup_model_routes(model_discovery):
             chat_url = build_chat_url(base)
             if not model and getattr(ep, "cached_models", None):
                 try:
-                    models = _json.loads(ep.cached_models) if isinstance(ep.cached_models, str) else ep.cached_models
+                    models = (
+                        _json.loads(ep.cached_models)
+                        if isinstance(ep.cached_models, str)
+                        else ep.cached_models
+                    )
                     if models:
                         model = models[0]
                 except Exception:
@@ -1304,7 +1489,9 @@ def setup_model_routes(model_discovery):
             if body:
                 if "supports_tools" in body:
                     v = body["supports_tools"]
-                    ep.supports_tools = bool(v) if v in (True, False, "true", "false", 1, 0) else None
+                    ep.supports_tools = (
+                        bool(v) if v in (True, False, "true", "false", 1, 0) else None
+                    )
                 if "is_enabled" in body:
                     ep.is_enabled = bool(body["is_enabled"])
                 if "name" in body and isinstance(body["name"], str):
@@ -1327,10 +1514,10 @@ def setup_model_routes(model_discovery):
 
     # ── Settings fields that store an endpoint ID ──
     _EP_SETTING_FIELDS = {
-        "default_endpoint_id":  ("default_model",  "Default Model"),
-        "utility_endpoint_id":  ("utility_model",   "Utility Model"),
-        "research_endpoint_id": ("research_model",  "Deep Research"),
-        "task_endpoint_id":     ("task_model",       "Background Tasks"),
+        "default_endpoint_id": ("default_model", "Default Model"),
+        "utility_endpoint_id": ("utility_model", "Utility Model"),
+        "research_endpoint_id": ("research_model", "Deep Research"),
+        "task_endpoint_id": ("task_model", "Background Tasks"),
     }
 
     def _settings_using_endpoint(ep_id: str) -> list:
@@ -1389,6 +1576,7 @@ def setup_model_routes(model_discovery):
     def _clear_loaded_sessions_for_endpoint(base_url: str) -> int:
         try:
             from src.ai_interaction import get_session_manager
+
             manager = get_session_manager()
         except Exception:
             manager = None
@@ -1443,6 +1631,7 @@ def setup_model_routes(model_discovery):
     def list_tools():
         """List all available tools with their enabled/disabled status."""
         from src.agent_tools import TOOL_TAGS
+
         settings = _load_settings()
         disabled = set(settings.get("disabled_tools", []))
         tools = []

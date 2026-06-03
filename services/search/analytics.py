@@ -116,9 +116,9 @@ def get_search_stats() -> Dict[str, Any]:
     cache_total = analytics.get("cache_hits", 0) + analytics.get("cache_misses", 0) or 1
     cache_hit_rate = analytics.get("cache_hits", 0) / cache_total
 
-    pattern_counter = Counter({
-        q: data["count"] for q, data in analytics.get("query_patterns", {}).items()
-    })
+    pattern_counter = Counter(
+        {q: data["count"] for q, data in analytics.get("query_patterns", {}).items()}
+    )
     most_common = [q for q, _ in pattern_counter.most_common(5)]
 
     return {

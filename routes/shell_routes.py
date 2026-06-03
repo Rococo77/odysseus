@@ -57,6 +57,7 @@ def _require_admin(request: Request):
     if not auth_manager.is_admin(user):
         raise HTTPException(403, "Admin only")
 
+
 logger = logging.getLogger(__name__)
 
 PTY_SUPPORTED = pty is not None and fcntl is not None and hasattr(os, "setsid")
@@ -117,8 +118,8 @@ PTY_UNSUPPORTED_ERROR = "pty_unsupported"
 class ShellExecRequest(BaseModel):
     command: str
     timeout: int | None = None  # optional override; 0 = no timeout (run until client disconnects)
-    use_pty: bool = False       # use pseudo-TTY (for progress bars)
-    use_tmux: bool = False      # run in tmux session (survives browser disconnect)
+    use_pty: bool = False  # use pseudo-TTY (for progress bars)
+    use_tmux: bool = False  # run in tmux session (survives browser disconnect)
 
 
 async def _create_shell(command: str, **kwargs):
@@ -145,9 +146,7 @@ async def _exec_shell(command: str, timeout: int = EXEC_TIMEOUT) -> Dict[str, An
             stderr=asyncio.subprocess.PIPE,
             cwd=str(Path.home()),
         )
-        stdout_b, stderr_b = await asyncio.wait_for(
-            proc.communicate(), timeout=timeout
-        )
+        stdout_b, stderr_b = await asyncio.wait_for(proc.communicate(), timeout=timeout)
         stdout = stdout_b.decode(errors="replace")[:MAX_OUTPUT]
         stderr = stderr_b.decode(errors="replace")[:MAX_OUTPUT]
         return {"stdout": stdout, "stderr": stderr, "exit_code": proc.returncode}
@@ -240,7 +239,7 @@ async def _generate_pty(cmd: str, timeout: int, request: Request):
                 if idx == -1:
                     break
                 line = buf[:idx].decode(errors="replace")
-                buf = buf[idx + sep_len:]
+                buf = buf[idx + sep_len :]
                 if line:
                     yield f"data: {json.dumps({'stream': 'stdout', 'data': line})}\n\n"
 
@@ -262,7 +261,7 @@ async def _generate_pty(cmd: str, timeout: int, request: Request):
                 if idx == -1:
                     break
                 line = buf[:idx].decode(errors="replace")
-                buf = buf[idx + sep_len:]
+                buf = buf[idx + sep_len :]
                 if line:
                     yield f"data: {json.dumps({'stream': 'stdout', 'data': line})}\n\n"
             if buf:
@@ -293,6 +292,7 @@ def _pty_read(fd: int) -> bytes | None:
     """Blocking read from PTY fd. Called via run_in_executor.
     Returns bytes on data, None on timeout (no data yet)."""
     import select
+
     r, _, _ = select.select([fd], [], [], 1.0)
     if r:
         try:
@@ -316,10 +316,10 @@ async def _generate_tmux(cmd: str, request: Request):
     script_path = TMUX_LOG_DIR / f"{session_id}.sh"
     script_path.write_text(
         f"#!/bin/bash\n"
-        f"ODYSSEUS_USER_SHELL=\"${{SHELL:-}}\"\n"
-        f"if [ -n \"$ODYSSEUS_USER_SHELL\" ] && [ -x \"$ODYSSEUS_USER_SHELL\" ]; then\n"
-        f"  ODYSSEUS_USER_PATH=\"$(\"$ODYSSEUS_USER_SHELL\" -ic 'printf \"__ODYSSEUS_PATH__%s\\n\" \"$PATH\"' 2>/dev/null | sed -n 's/^__ODYSSEUS_PATH__//p' | tail -n 1 || true)\"\n"
-        f"  if [ -n \"$ODYSSEUS_USER_PATH\" ]; then export PATH=\"$ODYSSEUS_USER_PATH:$PATH\"; fi\n"
+        f'ODYSSEUS_USER_SHELL="${{SHELL:-}}"\n'
+        f'if [ -n "$ODYSSEUS_USER_SHELL" ] && [ -x "$ODYSSEUS_USER_SHELL" ]; then\n'
+        f'  ODYSSEUS_USER_PATH="$("$ODYSSEUS_USER_SHELL" -ic \'printf "__ODYSSEUS_PATH__%s\\n" "$PATH"\' 2>/dev/null | sed -n \'s/^__ODYSSEUS_PATH__//p\' | tail -n 1 || true)"\n'
+        f'  if [ -n "$ODYSSEUS_USER_PATH" ]; then export PATH="$ODYSSEUS_USER_PATH:$PATH"; fi\n'
         f"fi\n"
         f"{cmd} 2>&1 | tee '{log_path}'\n"
         f"EC=${{PIPESTATUS[0]}}\n"
@@ -430,8 +430,7 @@ async def _generate_win_detached(cmd: str, request: Request):
     if bash:
         script_path = TMUX_LOG_DIR / f"{session_id}.sh"
         script_path.write_text(
-            f"{cmd} > {shlex.quote(str(log_path))} 2>&1\n"
-            f"echo $? > {shlex.quote(str(exit_path))}\n",
+            f"{cmd} > {shlex.quote(str(log_path))} 2>&1\necho $? > {shlex.quote(str(exit_path))}\n",
             encoding="utf-8",
         )
         argv = [bash, str(script_path)]
@@ -439,9 +438,7 @@ async def _generate_win_detached(cmd: str, request: Request):
         script_path = TMUX_LOG_DIR / f"{session_id}.cmd"
         # cmd.exe wrapper: run, redirect all output to the log, record exit code.
         script_path.write_text(
-            "@echo off\r\n"
-            f'call {cmd} > "{log_path}" 2>&1\r\n'
-            f'echo %ERRORLEVEL%> "{exit_path}"\r\n',
+            f'@echo off\r\ncall {cmd} > "{log_path}" 2>&1\r\necho %ERRORLEVEL%> "{exit_path}"\r\n',
             encoding="utf-8",
         )
         argv = [os.environ.get("ComSpec", "cmd.exe"), "/c", str(script_path)]
@@ -485,7 +482,9 @@ async def _generate_win_detached(cmd: str, request: Request):
                     for line in lines[lines_sent:]:
                         yield f"data: {json.dumps({'stream': 'stdout', 'data': line})}\n\n"
                     lines_sent = len(lines)
-                exit_code = int((exit_path.read_text(encoding="utf-8", errors="replace").strip() or "0"))
+                exit_code = int(
+                    (exit_path.read_text(encoding="utf-8", errors="replace").strip() or "0")
+                )
             except Exception:
                 exit_code = 0
             break
@@ -520,9 +519,11 @@ def setup_shell_routes() -> APIRouter:
         _require_admin(request)
         cmd = req.command.strip()
         if not cmd:
+
             async def empty():
                 yield f"data: {json.dumps({'stream': 'stderr', 'data': 'No command provided'})}\n\n"
                 yield f"data: {json.dumps({'exit_code': 1})}\n\n"
+
             return StreamingResponse(empty(), media_type="text/event-stream")
 
         timeout = req.timeout if req.timeout is not None else STREAM_TIMEOUT
@@ -539,7 +540,9 @@ def setup_shell_routes() -> APIRouter:
         if use_tmux:
             # tmux is POSIX-only; Windows uses a detached-process + logfile tail
             # that preserves the "survives disconnect" behaviour.
-            gen = _generate_win_detached(cmd, request) if IS_WINDOWS else _generate_tmux(cmd, request)
+            gen = (
+                _generate_win_detached(cmd, request) if IS_WINDOWS else _generate_tmux(cmd, request)
+            )
             return StreamingResponse(gen, media_type="text/event-stream")
 
         if use_pty and not IS_WINDOWS:
@@ -579,7 +582,7 @@ def setup_shell_routes() -> APIRouter:
                                 if idx == -1:
                                     break
                                 line = buf[:idx].decode(errors="replace")
-                                buf = buf[idx + sep_len:]
+                                buf = buf[idx + sep_len :]
                                 if line:
                                     await q.put((name, line))
                     finally:
@@ -637,7 +640,12 @@ def setup_shell_routes() -> APIRouter:
         return StreamingResponse(generate(), media_type="text/event-stream")
 
     @router.get("/api/cookbook/packages")
-    async def list_packages(request: Request, host: str | None = None, ssh_port: str | None = None, venv: str | None = None):
+    async def list_packages(
+        request: Request,
+        host: str | None = None,
+        ssh_port: str | None = None,
+        venv: str | None = None,
+    ):
         """Check which optional packages are installed.
 
         Local-target packages are checked in-process. Remote-target packages
@@ -647,6 +655,7 @@ def setup_shell_routes() -> APIRouter:
         """
         _require_admin(request)
         import importlib, shlex, json as _json
+
         port_arg = ""
         if ssh_port and str(ssh_port).strip() not in ("", "22"):
             _port = str(ssh_port).strip()
@@ -655,25 +664,93 @@ def setup_shell_routes() -> APIRouter:
             port_arg = f"-p {int(_port)} "
         packages = [
             # ── System ── OS binaries, not pip packages
-            {"name": "tmux", "pip": "", "desc": "Required for Linux/Termux Cookbook background downloads and serves", "category": "System", "target": "remote", "kind": "system", "install_hint": "Run Cookbook server setup, or install tmux with apt/pacman/dnf/apk/zypper."},
-            {"name": "docker", "pip": "", "desc": "Required only for Docker-backed launch commands", "category": "System", "target": "remote", "kind": "system", "install_hint": "Install Docker on the selected server and allow this user to run docker."},
+            {
+                "name": "tmux",
+                "pip": "",
+                "desc": "Required for Linux/Termux Cookbook background downloads and serves",
+                "category": "System",
+                "target": "remote",
+                "kind": "system",
+                "install_hint": "Run Cookbook server setup, or install tmux with apt/pacman/dnf/apk/zypper.",
+            },
+            {
+                "name": "docker",
+                "pip": "",
+                "desc": "Required only for Docker-backed launch commands",
+                "category": "System",
+                "target": "remote",
+                "kind": "system",
+                "install_hint": "Install Docker on the selected server and allow this user to run docker.",
+            },
             # ── LLM ── installs on GPU servers for model serving/downloading
-            {"name": "hf_transfer", "pip": "hf_transfer", "desc": "Fast model downloads from HuggingFace", "category": "LLM", "target": "remote"},
-            {"name": "llama_cpp", "pip": "llama-cpp-python[server]", "desc": "Serve GGUF models via llama.cpp", "category": "LLM", "target": "remote"},
-            {"name": "sglang", "pip": "sglang[all]", "desc": "Serve HF safetensors models via SGLang", "category": "LLM", "target": "remote"},
-            {"name": "vllm", "pip": "vllm", "desc": "High-throughput LLM serving engine", "category": "LLM", "target": "remote"},
+            {
+                "name": "hf_transfer",
+                "pip": "hf_transfer",
+                "desc": "Fast model downloads from HuggingFace",
+                "category": "LLM",
+                "target": "remote",
+            },
+            {
+                "name": "llama_cpp",
+                "pip": "llama-cpp-python[server]",
+                "desc": "Serve GGUF models via llama.cpp",
+                "category": "LLM",
+                "target": "remote",
+            },
+            {
+                "name": "sglang",
+                "pip": "sglang[all]",
+                "desc": "Serve HF safetensors models via SGLang",
+                "category": "LLM",
+                "target": "remote",
+            },
+            {
+                "name": "vllm",
+                "pip": "vllm",
+                "desc": "High-throughput LLM serving engine",
+                "category": "LLM",
+                "target": "remote",
+            },
             # ── Image ── editor + diffusion model serving
-            {"name": "diffusers", "pip": "diffusers[torch]", "desc": "Image generation pipelines (SD, Flux) with PyTorch", "category": "Image", "target": "remote"},
-            {"name": "rembg", "pip": "rembg[gpu]", "desc": "AI background removal for image editor", "category": "Image", "target": "local"},
-            {"name": "realesrgan", "pip": "realesrgan", "desc": "AI denoise + upscale (Real-ESRGAN). Used by editor's Denoise and Upscale tools.", "category": "Image", "target": "local"},
+            {
+                "name": "diffusers",
+                "pip": "diffusers[torch]",
+                "desc": "Image generation pipelines (SD, Flux) with PyTorch",
+                "category": "Image",
+                "target": "remote",
+            },
+            {
+                "name": "rembg",
+                "pip": "rembg[gpu]",
+                "desc": "AI background removal for image editor",
+                "category": "Image",
+                "target": "local",
+            },
+            {
+                "name": "realesrgan",
+                "pip": "realesrgan",
+                "desc": "AI denoise + upscale (Real-ESRGAN). Used by editor's Denoise and Upscale tools.",
+                "category": "Image",
+                "target": "local",
+            },
             # ── Tools ──
-            {"name": "playwright", "pip": "playwright", "desc": "Browser automation for web tools", "category": "Tools", "target": "local"},
+            {
+                "name": "playwright",
+                "pip": "playwright",
+                "desc": "Browser automation for web tools",
+                "category": "Tools",
+                "target": "local",
+            },
         ]
         # Remote check: for remote-target packages, probe the selected server's
         # venv over SSH so a remote `pip install` actually reflects here.
         remote_status: dict = {}
-        remote_names = [p["name"] for p in packages if p.get("target") == "remote" and p.get("kind") != "system"]
-        remote_system_names = [p["name"] for p in packages if p.get("target") == "remote" and p.get("kind") == "system"]
+        remote_names = [
+            p["name"] for p in packages if p.get("target") == "remote" and p.get("kind") != "system"
+        ]
+        remote_system_names = [
+            p["name"] for p in packages if p.get("target") == "remote" and p.get("kind") == "system"
+        ]
         if host and remote_names:
             try:
                 names_lit = ",".join(repr(n) for n in remote_names)
@@ -686,7 +763,11 @@ def setup_shell_routes() -> APIRouter:
                 )
                 src = ""
                 if venv:
-                    act = venv if venv.endswith("/bin/activate") else venv.rstrip("/") + "/bin/activate"
+                    act = (
+                        venv
+                        if venv.endswith("/bin/activate")
+                        else venv.rstrip("/") + "/bin/activate"
+                    )
                     # NOT shlex.quoted: a leading ~ must stay shell-expandable on
                     # the remote (quoting it breaks `~/venv` → activation fails →
                     # the && short-circuits and every package reads as missing).
@@ -714,7 +795,9 @@ def setup_shell_routes() -> APIRouter:
                 checks = []
                 for name in remote_system_names:
                     qn = shlex.quote(name)
-                    checks.append(f"if command -v {qn} >/dev/null 2>&1; then echo {qn}=1; else echo {qn}=0; fi")
+                    checks.append(
+                        f"if command -v {qn} >/dev/null 2>&1; then echo {qn}=1; else echo {qn}=0; fi"
+                    )
                 inner = " ; ".join(checks)
                 ssh_cmd = (
                     f"ssh -o ConnectTimeout=6 -o StrictHostKeyChecking=no {port_arg}"
@@ -763,15 +846,30 @@ def setup_shell_routes() -> APIRouter:
         """Install a package via pip. Admin only — pip install is effectively code exec."""
         _require_admin(request)
         import sys as _sys
+
         body = await request.json()
         pip_name = body.get("pip")
         if not pip_name:
             return {"ok": False, "error": "No package specified"}
         # Validate against known packages to prevent arbitrary pip install
         known = {
-            "rembg[gpu]", "hf_transfer", "llama-cpp-python[server]", "sglang[all]", "diffusers", "diffusers[torch]",
-            "TTS", "bark", "faster-whisper", "playwright", "realesrgan", "gfpgan",
-            "insightface", "onnxruntime-gpu", "onnxruntime", "hdbscan", "vllm",
+            "rembg[gpu]",
+            "hf_transfer",
+            "llama-cpp-python[server]",
+            "sglang[all]",
+            "diffusers",
+            "diffusers[torch]",
+            "TTS",
+            "bark",
+            "faster-whisper",
+            "playwright",
+            "realesrgan",
+            "gfpgan",
+            "insightface",
+            "onnxruntime-gpu",
+            "onnxruntime",
+            "hdbscan",
+            "vllm",
         }
         if pip_name not in known:
             return {"ok": False, "error": f"Unknown package: {pip_name}"}

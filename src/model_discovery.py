@@ -27,8 +27,7 @@ def discover_tailscale_hosts() -> List[str]:
     hosts = []
     try:
         result = subprocess.run(
-            ["tailscale", "status", "--json"],
-            capture_output=True, text=True, timeout=5
+            ["tailscale", "status", "--json"], capture_output=True, text=True, timeout=5
         )
         if result.returncode != 0:
             return hosts
@@ -77,6 +76,7 @@ class ModelDiscovery:
 
     def _get_hosts(self) -> List[str]:
         """Get all hosts to scan, using env override, Tailscale, or default."""
+
         def _append_host(out: List[str], host: str) -> None:
             host = (host or "").strip()
             if not host or host in out:
@@ -132,7 +132,7 @@ class ModelDiscovery:
                     "port": port,
                     "url": f"http://{host}:{port}{self.openai_compat_path}",
                     "models": ids,
-                    "models_display": [i.lstrip("/") for i in ids]
+                    "models_display": [i.lstrip("/") for i in ids],
                 }
         except Exception:
             pass
@@ -176,15 +176,23 @@ class ModelDiscovery:
 
         if self.openai_api_key:
             openai_models = [
-                "gpt-5.2-codex", "gpt-4o-mini", "gpt-image-1.5",
-                "gpt-4o", "gpt-5.2", "gpt-5.2-pro",
+                "gpt-5.2-codex",
+                "gpt-4o-mini",
+                "gpt-image-1.5",
+                "gpt-4o",
+                "gpt-5.2",
+                "gpt-5.2-pro",
             ]
-            providers.append({
-                "provider": "openai",
-                "items": [{
-                    "url": "https://api.openai.com/v1/chat/completions",
-                    "models": openai_models
-                }]
-            })
+            providers.append(
+                {
+                    "provider": "openai",
+                    "items": [
+                        {
+                            "url": "https://api.openai.com/v1/chat/completions",
+                            "models": openai_models,
+                        }
+                    ],
+                }
+            )
 
         return {"providers": providers}

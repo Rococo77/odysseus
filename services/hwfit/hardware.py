@@ -27,7 +27,9 @@ def _run(cmd):
             ssh_cmd += [_remote_host, cmd_str]
             r = subprocess.run(
                 ssh_cmd,
-                capture_output=True, text=True, timeout=15,
+                capture_output=True,
+                text=True,
+                timeout=15,
             )
         else:
             r = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
@@ -79,14 +81,18 @@ def _detect_nvidia():
     # Retry through a login shell with the common CUDA bin dirs on PATH.
     if not out and _remote_host:
         out = _run(
-            "bash -lc 'export PATH=\"$PATH:/usr/bin:/usr/local/bin:/usr/local/cuda/bin\"; "
+            'bash -lc \'export PATH="$PATH:/usr/bin:/usr/local/bin:/usr/local/cuda/bin"; '
             "nvidia-smi --query-gpu=memory.total,name --format=csv,noheader,nounits'"
         )
     # Last resort: call nvidia-smi by absolute path. Some hosts have a login
     # shell that isn't bash (or a profile that errors), so the bash -lc retry
     # above still comes back empty even though the binary is right there.
     if not out and _remote_host:
-        for _p in ("/usr/bin/nvidia-smi", "/usr/local/bin/nvidia-smi", "/usr/local/cuda/bin/nvidia-smi"):
+        for _p in (
+            "/usr/bin/nvidia-smi",
+            "/usr/local/bin/nvidia-smi",
+            "/usr/local/cuda/bin/nvidia-smi",
+        ):
             out = _run(f"{_p} --query-gpu=memory.total,name --format=csv,noheader,nounits")
             if out:
                 break
@@ -97,9 +103,13 @@ def _detect_nvidia():
     # without a reboot). It prints an error and no GPU rows — surface that as a
     # driver error rather than the misleading "No GPU".
     _low = out.lower()
-    if ("nvml" in _low or "driver/library version mismatch" in _low
-            or "couldn't communicate" in _low or "no devices were found" in _low
-            or "failed to initialize" in _low):
+    if (
+        "nvml" in _low
+        or "driver/library version mismatch" in _low
+        or "couldn't communicate" in _low
+        or "no devices were found" in _low
+        or "failed to initialize" in _low
+    ):
         _last_gpu_error = out.strip().split("\n")[0][:140] or "NVIDIA driver error"
         return None
 
@@ -134,6 +144,7 @@ def _detect_amd():
     """Detect AMD GPUs. Handles both discrete cards (with mem_info_vram_total)
     and APUs / unified-memory SoCs like Strix Halo (which expose
     mem_info_vis_vram_total instead, or only mem_info_gtt_total)."""
+
     def _read(path):
         if _remote_host:
             val = _run(["cat", path])
@@ -151,7 +162,9 @@ def _detect_amd():
                 return []
             return [e for e in out.split() if e.startswith("card") and "-" not in e]
         try:
-            return [e for e in os.listdir("/sys/class/drm") if e.startswith("card") and "-" not in e]
+            return [
+                e for e in os.listdir("/sys/class/drm") if e.startswith("card") and "-" not in e
+            ]
         except Exception:
             return []
 
@@ -317,7 +330,11 @@ def _get_ram_gb():
 
     # os.sysconf only exists on Unix; on Windows it's absent (AttributeError)
     # and these constants aren't defined — guard so this never raises there.
-    if not _remote_host and hasattr(os, "sysconf") and "SC_PHYS_PAGES" in getattr(os, "sysconf_names", {}):
+    if (
+        not _remote_host
+        and hasattr(os, "sysconf")
+        and "SC_PHYS_PAGES" in getattr(os, "sysconf_names", {})
+    ):
         try:
             pages = os.sysconf("SC_PHYS_PAGES")
             page_size = os.sysconf("SC_PAGE_SIZE")
@@ -407,7 +424,7 @@ def _detect_windows():
         "  $nv = nvidia-smi --query-gpu=memory.total,name --format=csv,noheader,nounits 2>$null; "
         "  if ($LASTEXITCODE -eq 0 -and $nv) { "
         "    $gpus = @(); "
-        "    foreach ($line in $nv -split \"`n\") { "
+        '    foreach ($line in $nv -split "`n") { '
         "      $p = $line -split ','; "
         "      if ($p.Count -ge 2) { $gpus += @{name=$p[1].Trim(); vram_mb=[double]$p[0].Trim()} } "
         "    }; "
@@ -440,8 +457,10 @@ def _detect_windows():
     if not out:
         return None
     import json as _json
+
     try:
         d = _json.loads(out)
+
         # PowerShell's Measure-Object .Sum / .Count come back as JSON numbers and
         # decode to float; the Linux path returns plain ints for these — coerce
         # so the dict shape (and downstream int math) matches across platforms.
@@ -450,7 +469,8 @@ def _detect_windows():
                 return int(v)
             except (TypeError, ValueError):
                 return default
-        _cpu_name = (d.get("cpu_name") or "unknown")
+
+        _cpu_name = d.get("cpu_name") or "unknown"
         if isinstance(_cpu_name, str):
             _cpu_name = _cpu_name.strip() or "unknown"
         result = {
@@ -475,13 +495,15 @@ def _detect_windows():
             result["gpus"] = [
                 {"index": i, "name": result["gpu_name"], "vram_gb": _each} for i in range(_n)
             ]
-            result["gpu_groups"] = [{
-                "name": result["gpu_name"],
-                "vram_each": _each,
-                "count": _n,
-                "indices": list(range(_n)),
-                "vram_total": result["gpu_vram_gb"],
-            }]
+            result["gpu_groups"] = [
+                {
+                    "name": result["gpu_name"],
+                    "vram_each": _each,
+                    "count": _n,
+                    "indices": list(range(_n)),
+                    "vram_total": result["gpu_vram_gb"],
+                }
+            ]
             result["homogeneous"] = True
         return result
     except Exception:
@@ -576,6 +598,7 @@ def detect_system(host="", ssh_port="", platform="", fresh=False):
             arch_out = _run(["uname", "-m"]) or ""
         else:
             import platform as _platform
+
             arch_out = _platform.machine().lower()
         backend = "cpu_arm" if "aarch64" in arch_out or "arm" in arch_out else "cpu_x86"
         result = {

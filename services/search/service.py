@@ -14,6 +14,7 @@ from . import (
 @dataclass
 class SearchResult:
     """A single search result."""
+
     url: str
     title: str
     snippet: str
@@ -23,6 +24,7 @@ class SearchResult:
 @dataclass
 class SearchResponse:
     """Response from a search query."""
+
     query: str
     results: List[SearchResult]
     total: int
@@ -73,12 +75,14 @@ class SearchService:
 
         results = []
         for r in raw_results:
-            results.append(SearchResult(
-                url=r.get("url", ""),
-                title=r.get("title", ""),
-                snippet=r.get("snippet", ""),
-                content=r.get("content"),
-            ))
+            results.append(
+                SearchResult(
+                    url=r.get("url", ""),
+                    title=r.get("title", ""),
+                    snippet=r.get("snippet", ""),
+                    content=r.get("content"),
+                )
+            )
 
         return SearchResponse(
             query=query,

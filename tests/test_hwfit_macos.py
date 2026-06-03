@@ -32,6 +32,7 @@ def _fake_sysctl(brand="Apple M2 Pro", memsize_gb=32, wired_mb=None):
         if "iogpu.wired_limit_mb" in joined:
             return str(wired_mb) if wired_mb is not None else None
         return None
+
     return run
 
 
@@ -46,14 +47,23 @@ def test_mlx_models_hidden_on_metal():
 
 def _cuda_system():
     return {
-        "has_gpu": True, "backend": "cuda", "gpu_name": "NVIDIA RTX 4090",
-        "gpu_vram_gb": 24.0, "gpu_count": 1, "available_ram_gb": 32.0, "total_ram_gb": 64.0,
+        "has_gpu": True,
+        "backend": "cuda",
+        "gpu_name": "NVIDIA RTX 4090",
+        "gpu_vram_gb": 24.0,
+        "gpu_count": 1,
+        "available_ram_gb": 32.0,
+        "total_ram_gb": 64.0,
     }
 
 
 def test_mlx_hidden_on_cuda_backend_unchanged():
     """Regression guard: Linux/CUDA users never saw MLX before and still don't."""
-    mlx = [m for m in rank_models(_cuda_system(), limit=900) if str(m.get("quant", "")).startswith("mlx-")]
+    mlx = [
+        m
+        for m in rank_models(_cuda_system(), limit=900)
+        if str(m.get("quant", "")).startswith("mlx-")
+    ]
     assert mlx == []
 
 
@@ -63,9 +73,12 @@ def test_only_gguf_models_recommended_on_metal():
     model recommended on Apple Silicon must ship a servable GGUF."""
     catalog = {m["name"]: m for m in get_models()}
     unservable = [
-        r["name"] for r in rank_models(_metal_system(), limit=900)
-        if not (catalog.get(r["name"], {}).get("is_gguf")
-                or catalog.get(r["name"], {}).get("gguf_sources"))
+        r["name"]
+        for r in rank_models(_metal_system(), limit=900)
+        if not (
+            catalog.get(r["name"], {}).get("is_gguf")
+            or catalog.get(r["name"], {}).get("gguf_sources")
+        )
     ]
     assert unservable == [], f"{len(unservable)} non-GGUF models on Metal, e.g. {unservable[:3]}"
 
@@ -114,11 +127,20 @@ def test_intel_mac_skipped(monkeypatch):
 def test_detect_system_propagates_unified_memory(monkeypatch):
     """The unified_memory flag set by GPU detection must survive into the
     system dict so the API and UI can report it (it was being dropped)."""
-    monkeypatch.setattr(hardware, "_detect_apple_silicon", lambda: {
-        "gpu_name": "Apple M4", "gpu_vram_gb": 10.7, "gpu_count": 1,
-        "gpus": [], "gpu_groups": [], "homogeneous": True,
-        "backend": "metal", "unified_memory": True,
-    })
+    monkeypatch.setattr(
+        hardware,
+        "_detect_apple_silicon",
+        lambda: {
+            "gpu_name": "Apple M4",
+            "gpu_vram_gb": 10.7,
+            "gpu_count": 1,
+            "gpus": [],
+            "gpu_groups": [],
+            "homogeneous": True,
+            "backend": "metal",
+            "unified_memory": True,
+        },
+    )
     monkeypatch.setattr(hardware, "_get_ram_gb", lambda: 16.0)
     monkeypatch.setattr(hardware, "_get_available_ram_gb", lambda: 11.0)
     monkeypatch.setattr(hardware, "_get_cpu_count", lambda: 10)

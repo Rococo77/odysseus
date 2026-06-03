@@ -68,7 +68,10 @@ def _validate_local_dir(v: str | None) -> str | None:
         return None
     v = v.rstrip("/") or "/"
     if not _LOCAL_DIR_RE.match(v):
-        raise HTTPException(400, "Invalid local_dir — must be an absolute or ~ path with no spaces or shell metacharacters")
+        raise HTTPException(
+            400,
+            "Invalid local_dir — must be an absolute or ~ path with no spaces or shell metacharacters",
+        )
     return v
 
 
@@ -115,12 +118,7 @@ def _local_tooling_path_export(executable: str) -> str:
     bin_dir = os.path.dirname(os.path.abspath(executable))
     # Escape for a double-quoted context: $PATH must still expand, but spaces
     # and shell metacharacters in the path must be preserved literally.
-    esc = (
-        bin_dir.replace("\\", "\\\\")
-        .replace('"', '\\"')
-        .replace("$", "\\$")
-        .replace("`", "\\`")
-    )
+    esc = bin_dir.replace("\\", "\\\\").replace('"', '\\"').replace("$", "\\$").replace("`", "\\`")
     return f'export PATH="{esc}:$PATH"'
 
 
@@ -139,10 +137,17 @@ def _bash_squote(v: str) -> str:
 # Allow-list of binaries permitted as the leading token of `req.cmd` for /api/model/serve.
 # Anything else is rejected before the cmd is interpolated into a tmux/PowerShell wrapper.
 _SERVE_CMD_ALLOWLIST = {
-    "vllm", "llama-server", "llama_server", "llama.cpp", "ollama",
-    "python", "python3",
-    "sglang", "lmdeploy",
-    "node", "npx",
+    "vllm",
+    "llama-server",
+    "llama_server",
+    "llama.cpp",
+    "ollama",
+    "python",
+    "python3",
+    "sglang",
+    "lmdeploy",
+    "node",
+    "npx",
 }
 
 
@@ -153,7 +158,7 @@ _SERVE_CMD_ALLOWLIST = {
 # That legitimately needs $(...)/&&/||, so we recognise this exact shape and
 # validate the serve binaries it guards rather than rejecting it wholesale.
 _GGUF_PRELUDE_RE = re.compile(
-    r'^MODEL_FILE=\$\([^\n]*?\)\s*&&\s*\{[^{}]*\}\s*\|\|\s*\{[^{}]*\}\s*&&\s*'
+    r"^MODEL_FILE=\$\([^\n]*?\)\s*&&\s*\{[^{}]*\}\s*\|\|\s*\{[^{}]*\}\s*&&\s*"
 )
 
 
@@ -201,7 +206,7 @@ def _validate_serve_cmd(v: str | None) -> str | None:
     # Known GGUF launcher prelude → validate the serve invocation(s) it guards.
     m = _GGUF_PRELUDE_RE.match(v)
     if m:
-        rest = v[m.end():]
+        rest = v[m.end() :]
         # rest is `[ENV=…] python3 -m llama_cpp.server … || [ENV=…] llama-server …`
         for part in rest.split("||"):
             _check_serve_binary(part.strip())
@@ -220,9 +225,11 @@ class ModelDownloadRequest(BaseModel):
     hf_token: str | None = None
     env_prefix: str | None = None  # e.g. "source ~/venv/bin/activate"
     remote_host: str | None = None  # e.g. "gpu-box" — run download on this host via SSH
-    ssh_port: str | None = None    # e.g. "8022" for Termux
-    platform: str | None = None    # "linux", "termux", or "windows"
-    local_dir: str | None = None   # base dir to download into (a per-model subfolder is created under it); None = default HF cache
+    ssh_port: str | None = None  # e.g. "8022" for Termux
+    platform: str | None = None  # "linux", "termux", or "windows"
+    local_dir: str | None = (
+        None  # base dir to download into (a per-model subfolder is created under it); None = default HF cache
+    )
     disable_hf_transfer: bool = False  # skip the Rust hf_transfer downloader — slower but far more reliable on large files (used by retries)
 
 
@@ -234,7 +241,7 @@ class ServeRequest(BaseModel):
     env_prefix: str | None = None
     hf_token: str | None = None
     gpus: str | None = None
-    platform: str | None = None    # "linux", "termux", or "windows"
+    platform: str | None = None  # "linux", "termux", or "windows"
 
 
 def _parse_serve_phase(snapshot: str, task_type: str = "serve") -> dict:
@@ -245,20 +252,21 @@ def _parse_serve_phase(snapshot: str, task_type: str = "serve") -> dict:
           "reqs": int|None, "pct": int|None }
     """
     import re
+
     if task_type != "serve" or not snapshot:
         return {}
     # Strip newlines so tmux line-wrapping doesn't break regex matching
-    flat = re.sub(r'\s+', ' ', snapshot)
+    flat = re.sub(r"\s+", " ", snapshot)
 
-    load_matches = re.findall(r'Loading safetensors.*?(\d+)%', flat)
+    load_matches = re.findall(r"Loading safetensors.*?(\d+)%", flat)
     # Prefer "Downloading (incomplete total...)" (real aggregate bytes) over
     # "Fetching N files" (whole-file count, lags with hf_transfer's chunked pulls).
-    downloading_matches = re.findall(r'Downloading.*?(\d+)%', flat)
-    fetching_matches = re.findall(r'Fetching.*?(\d+)%', flat)
+    downloading_matches = re.findall(r"Downloading.*?(\d+)%", flat)
+    fetching_matches = re.findall(r"Fetching.*?(\d+)%", flat)
     dl_matches = downloading_matches if downloading_matches else fetching_matches
     # Match "Avg generation throughput: X tokens/s, Running: N reqs" (with line-wrap tolerance)
     tps_matches = re.findall(
-        r'(?:Avg )?generation throughput:\s*([\d.]+)\s*tokens/s.*?Running:\s*(\d+)\s*reqs',
+        r"(?:Avg )?generation throughput:\s*([\d.]+)\s*tokens/s.*?Running:\s*(\d+)\s*reqs",
         flat,
     )
 
@@ -309,6 +317,7 @@ def _safe_env_prefix(ep: str | None) -> str | None:
     if not ep:
         return ep
     import shlex
+
     try:
         parts = shlex.split(ep, posix=True)
     except ValueError:

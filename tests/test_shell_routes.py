@@ -112,29 +112,44 @@ class TestRunningInContainer:
     def test_dockerenv_marker_present(self, tmp_path):
         marker = tmp_path / ".dockerenv"
         marker.write_text("")
-        assert _running_in_container(
-            dockerenv_path=str(marker), cgroup_path=str(tmp_path / "missing"),
-        ) is True
+        assert (
+            _running_in_container(
+                dockerenv_path=str(marker),
+                cgroup_path=str(tmp_path / "missing"),
+            )
+            is True
+        )
 
     def test_cgroup_names_a_container_runtime(self, tmp_path):
         cgroup = tmp_path / "cgroup"
         cgroup.write_text("12:devices:/docker/abcdef0123456789\n")
-        assert _running_in_container(
-            dockerenv_path=str(tmp_path / "no-marker"), cgroup_path=str(cgroup),
-        ) is True
+        assert (
+            _running_in_container(
+                dockerenv_path=str(tmp_path / "no-marker"),
+                cgroup_path=str(cgroup),
+            )
+            is True
+        )
 
     def test_bare_host_has_neither_signal(self, tmp_path):
         cgroup = tmp_path / "cgroup"
         cgroup.write_text("0::/user.slice/session-1.scope\n")
-        assert _running_in_container(
-            dockerenv_path=str(tmp_path / "no-marker"), cgroup_path=str(cgroup),
-        ) is False
+        assert (
+            _running_in_container(
+                dockerenv_path=str(tmp_path / "no-marker"),
+                cgroup_path=str(cgroup),
+            )
+            is False
+        )
 
     def test_missing_cgroup_file_is_not_a_container(self, tmp_path):
-        assert _running_in_container(
-            dockerenv_path=str(tmp_path / "no-marker"),
-            cgroup_path=str(tmp_path / "also-missing"),
-        ) is False
+        assert (
+            _running_in_container(
+                dockerenv_path=str(tmp_path / "no-marker"),
+                cgroup_path=str(tmp_path / "also-missing"),
+            )
+            is False
+        )
 
 
 class TestDockerRowStatus:
@@ -144,35 +159,50 @@ class TestDockerRowStatus:
 
     def test_in_container_and_absent_is_not_applicable_with_safe_default_hint(self):
         status = _docker_row_status(
-            on_remote=False, in_container=True, installed=False, default_hint=self.DEFAULT,
+            on_remote=False,
+            in_container=True,
+            installed=False,
+            default_hint=self.DEFAULT,
         )
         assert status.applicable is False
         assert status.install_hint == DOCKER_IN_CONTAINER_HINT
 
     def test_in_container_but_present_is_applicable_with_default_hint(self):
         status = _docker_row_status(
-            on_remote=False, in_container=True, installed=True, default_hint=self.DEFAULT,
+            on_remote=False,
+            in_container=True,
+            installed=True,
+            default_hint=self.DEFAULT,
         )
         assert status.applicable is True
         assert status.install_hint == self.DEFAULT
 
     def test_on_host_and_absent_stays_applicable_with_default_hint(self):
         status = _docker_row_status(
-            on_remote=False, in_container=False, installed=False, default_hint=self.DEFAULT,
+            on_remote=False,
+            in_container=False,
+            installed=False,
+            default_hint=self.DEFAULT,
         )
         assert status.applicable is True
         assert status.install_hint == self.DEFAULT
 
     def test_remote_server_is_always_applicable_even_when_absent(self):
         status = _docker_row_status(
-            on_remote=True, in_container=False, installed=False, default_hint=self.DEFAULT,
+            on_remote=True,
+            in_container=False,
+            installed=False,
+            default_hint=self.DEFAULT,
         )
         assert status.applicable is True
         assert status.install_hint == self.DEFAULT
 
     def test_remote_server_ignores_local_container_status(self):
         status = _docker_row_status(
-            on_remote=True, in_container=True, installed=False, default_hint=self.DEFAULT,
+            on_remote=True,
+            in_container=True,
+            installed=False,
+            default_hint=self.DEFAULT,
         )
         assert status.applicable is True
         assert status.install_hint == self.DEFAULT
