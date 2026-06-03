@@ -18,6 +18,13 @@ select = ["E9", "F63", "F7", "F82"]
 
 [tool.mypy]
 python_version = "3.11"
+# src/ and core/ have no __init__.py, so a module like constants.py is
+# reachable both as `constants` and `src.constants`. Tell mypy to treat the
+# repo root as the package base so each file maps to a single module name and
+# `mypy src core` doesn't abort with "Source file found twice".
+explicit_package_bases = true
+namespace_packages = true
+mypy_path = "."
 # Progressive adoption: lenient defaults now, ratcheted per-module via
 # overrides as typing improves. See docs/plans/03-ci-pipeline.md.
 ignore_missing_imports = true
