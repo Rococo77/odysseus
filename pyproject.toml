@@ -1,3 +1,77 @@
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+# scripts/ are one-off operational utilities, not part of the served app.
+extend-exclude = ["scripts", "static/lib"]
+
+[tool.ruff.lint]
+# Day-1 scope: the high-signal "real bug" set only — syntax errors (E9),
+# comparison/assertion bugs (F63), syntax-level pyflakes (F7), and undefined
+# names / unbound locals (F82). This catches genuine defects without forcing a
+# repo-wide mechanical reformat on enablement. Tighten in follow-up PRs per the
+# roadmap in docs/plans/03-ci-pipeline.md (F401/I/UP/B, then E501).
+select = ["E9", "F63", "F7", "F82"]
+
+[tool.mypy]
+python_version = "3.11"
+# Progressive adoption: lenient defaults now, ratcheted per-module via
+# overrides as typing improves. See docs/plans/03-ci-pipeline.md.
+ignore_missing_imports = true
+check_untyped_defs = false
+warn_unused_ignores = false
+
+# Strict-enforced modules. These pass `mypy --strict` today and are gated as a
+# BLOCKING CI step (typecheck-strict in .github/workflows/ci.yml). Add a module
+# here only after it is strict-clean; the list is the ratchet — it only grows.
+#   src/constants.py
+#   src/prompt_security.py
+#   src/rate_limiter.py
+#   src/action_intents.py
+#   src/text_helpers.py
+#   src/exceptions.py
+#   src/model_context.py
+[[tool.mypy.overrides]]
+module = [
+    "src.constants",
+    "src.prompt_security",
+    "src.rate_limiter",
+    "src.action_intents",
+    "src.text_helpers",
+    "src.exceptions",
+    "src.model_context",
+]
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+warn_return_any = true
+no_implicit_optional = true
+warn_unused_ignores = true
+
+[tool.coverage.run]
+source = ["src", "core", "routes"]
+branch = true
+omit = [
+    "tests/*",
+    "scripts/*",
+    "mcp_servers/*",
+    "*/__init__.py",
+]
+
+[tool.coverage.report]
+# Floor only — the suite is regression-focused (~8% today), so this guards
+# against coverage *dropping*, not a target. Ratchet upward as integration
+# tests land (see docs/plans/03-ci-pipeline.md and the routes refactor Phase 0).
+# Branch coverage is on, so the headline figure (~6.6%) is stricter than a
+# line-only number; the floor sits just below it to absorb cross-version noise.
+fail_under = 6
+show_missing = true
+skip_covered = false
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.:",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+]

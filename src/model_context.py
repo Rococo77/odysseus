@@ -6,7 +6,7 @@ Provides token estimation for context usage tracking.
 """
 
 import logging
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from urllib.parse import urlparse
 
@@ -207,7 +207,7 @@ def _query_context_length(endpoint_url: str, model: str) -> int:
                     n_ctx = slots[0].get("n_ctx")
                     if n_ctx and isinstance(n_ctx, int) and n_ctx > 0:
                         logger.info(f"llama.cpp /slots reports n_ctx={n_ctx} for {model}")
-                        return n_ctx
+                        return int(n_ctx)
         except Exception:
             pass
 
@@ -266,7 +266,7 @@ def _query_context_length(endpoint_url: str, model: str) -> int:
     return DEFAULT_CONTEXT
 
 
-def estimate_tokens(messages: List[Dict]) -> int:
+def estimate_tokens(messages: List[Dict[str, Any]]) -> int:
     """Rough token estimate for a list of messages.
 
     Uses chars * 0.3 which is closer to real BPE tokenizer output

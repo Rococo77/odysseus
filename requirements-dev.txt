@@ -1,0 +1,12 @@
+# Development & CI dependencies. Install on top of requirements.txt:
+#   pip install -r requirements.txt -r requirements-dev.txt
+#
+# Runtime deps (fastapi, sqlalchemy, cryptography, …) live in requirements.txt;
+# the test suite needs them installed for real (the conftest.py stubs are only
+# a fallback for missing optional deps, not a substitute for a full install).
+
+pytest
+pytest-asyncio
+pytest-cov
+ruff
+mypy
