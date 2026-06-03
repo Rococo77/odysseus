@@ -25,10 +25,8 @@ jobs:
       - run: pip install ruff
       - name: ruff check
         run: ruff check --output-format=github .
-      # NOTE: `ruff format --check` is intentionally not enforced yet — the
-      # codebase predates a formatter (172 files would change). It is staged
-      # as a dedicated formatting PR in docs/plans/03-ci-pipeline.md before
-      # being made blocking here.
+      - name: ruff format --check
+        run: ruff format --check .
 
   test:
     name: Tests (py${{ matrix.python-version }})
