@@ -24,6 +24,32 @@ ignore_missing_imports = true
 check_untyped_defs = false
 warn_unused_ignores = false
 
+# Strict-enforced modules. These pass `mypy --strict` today and are gated as a
+# BLOCKING CI step (typecheck-strict in .github/workflows/ci.yml). Add a module
+# here only after it is strict-clean; the list is the ratchet — it only grows.
+#   src/constants.py
+#   src/prompt_security.py
+#   src/rate_limiter.py
+#   src/action_intents.py
+#   src/text_helpers.py
+#   src/exceptions.py
+#   src/model_context.py
+[[tool.mypy.overrides]]
+module = [
+    "src.constants",
+    "src.prompt_security",
+    "src.rate_limiter",
+    "src.action_intents",
+    "src.text_helpers",
+    "src.exceptions",
+    "src.model_context",
+]
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+warn_return_any = true
+no_implicit_optional = true
+warn_unused_ignores = true
+
 [tool.coverage.run]
 source = ["src", "core", "routes"]
 branch = true
