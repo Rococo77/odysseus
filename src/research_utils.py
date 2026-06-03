@@ -5,12 +5,14 @@ Centralizes text cleaning, quality filtering, and other logic
 used across deep_research.py, research_handler.py, and visual_report.py.
 """
 
+from typing import Optional
+
 # ---------------------------------------------------------------------------
 # Thinking / reasoning block stripping
 # ---------------------------------------------------------------------------
 
 
-def strip_thinking(text):
+def strip_thinking(text: "Optional[str]") -> "Optional[str]":
     """Strip thinking / reasoning patterns from LLM output.
 
     Delegates to `src.text_helpers.strip_think` (single source of truth).
@@ -22,7 +24,8 @@ def strip_thinking(text):
         return None
     from src.text_helpers import strip_think
 
-    return strip_think(text, prose=False, prompt_echo=True)
+    stripped: str = strip_think(text, prose=False, prompt_echo=True)
+    return stripped
 
 
 # ---------------------------------------------------------------------------

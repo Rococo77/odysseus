@@ -56,6 +56,16 @@ module = [
     "core.exceptions",
     "core.platform_compat",
     "services.search.query",
+    "services.memory.service",
+    "services.search.analytics",
+    "services.search.cache",
+    "services.search.ranking",
+    "services.youtube.youtube_handler",
+    "src.bg_jobs",
+    "src.integrations",
+    "src.research_utils",
+    "src.tool_parsing",
+    "src.youtube_handler",
 ]
 disallow_untyped_defs = true
 disallow_incomplete_defs = true

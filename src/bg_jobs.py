@@ -70,7 +70,7 @@ def _pid_alive(pid: Optional[int]) -> bool:
     # on Windows — CPython routes it to TerminateProcess, which would KILL the
     # job we're only trying to check. core.platform_compat.pid_alive handles
     # both OSes correctly.
-    return pid_alive(pid)
+    return bool(pid_alive(pid))
 
 
 def launch(

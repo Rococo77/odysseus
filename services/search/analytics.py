@@ -60,7 +60,8 @@ def _load_analytics() -> Dict[str, Any]:
         return default
     try:
         with open(ANALYTICS_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
+            data: Dict[str, Any] = json.load(f)
+            return data
     except Exception as e:
         logger.warning(f"Failed to load analytics file: {e}")
         return {

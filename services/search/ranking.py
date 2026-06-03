@@ -3,7 +3,7 @@
 import re
 import logging
 from datetime import datetime
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
 
 logger = logging.getLogger(__name__)
@@ -64,7 +64,7 @@ def _domain(url: str) -> str:
         return ""
 
 
-def rank_search_results(query: str, results: List[dict]) -> List[dict]:
+def rank_search_results(query: str, results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """Rank search results by title relevance, snippet quality, domain authority, and recency."""
     query_terms = [t.lower() for t in re.findall(r"\b\w+\b", query)]
     query_lc = query.lower()

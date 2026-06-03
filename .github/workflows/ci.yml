@@ -96,7 +96,17 @@ jobs:
             core/constants.py \
             core/exceptions.py \
             core/platform_compat.py \
-            services/search/query.py
+            services/search/query.py \
+            services/memory/service.py \
+            services/search/analytics.py \
+            services/search/cache.py \
+            services/search/ranking.py \
+            services/youtube/youtube_handler.py \
+            src/bg_jobs.py \
+            src/integrations.py \
+            src/research_utils.py \
+            src/tool_parsing.py \
+            src/youtube_handler.py
 
   typecheck:
     name: Type check (mypy, whole tree)

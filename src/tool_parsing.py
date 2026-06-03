@@ -274,7 +274,7 @@ def _parse_tool_call_block(raw: str) -> Optional[ToolBlock]:
     return None
 
 
-def _parse_xml_invoke(inv_match) -> Optional[ToolBlock]:
+def _parse_xml_invoke(inv_match: "re.Match[str]") -> Optional[ToolBlock]:
     """Parse an <invoke name="tool"><parameter ...>...</parameter></invoke> match.
 
     Delegates content-shaping to function_call_to_tool_block — the SAME

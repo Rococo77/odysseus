@@ -138,4 +138,4 @@ class MemoryService:
 
     def delete(self, memory_id: str) -> bool:
         """Delete a memory by ID."""
-        return self.manager.delete_memory(memory_id)
+        return bool(self.manager.delete_memory(memory_id))

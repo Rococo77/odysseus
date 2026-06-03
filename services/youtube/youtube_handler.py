@@ -45,7 +45,7 @@ def _find_ytdlp() -> str:
     return found or "yt-dlp"
 
 
-def init_youtube():
+def init_youtube() -> None:
     """Import and cache the YouTube transcript API."""
     global YouTubeTranscriptApi, YOUTUBE_AVAILABLE
     try:

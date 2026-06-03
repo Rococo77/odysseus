@@ -149,7 +149,8 @@ def load_integrations() -> List[Dict[str, Any]]:
         return []
     try:
         with open(DATA_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
+            data: List[Dict[str, Any]] = json.load(f)
+            return data
     except (json.JSONDecodeError, IOError) as exc:
         log.error("Failed to load integrations: %s", exc)
         return []
