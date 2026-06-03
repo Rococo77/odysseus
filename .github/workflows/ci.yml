@@ -47,6 +47,10 @@ jobs:
           pip install -r requirements.txt -r requirements-dev.txt
       - name: Run tests
         run: pytest -q --cov --cov-report=term-missing --cov-report=xml
+      - name: Run integration tests
+        # Separate process: integration tests boot the full app and can't share
+        # interpreter state with the unit tests (which stub heavy deps).
+        run: pytest -m integration tests/integration -q
       - name: Coverage summary
         if: ${{ always() }}
         run: |
