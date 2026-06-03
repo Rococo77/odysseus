@@ -108,7 +108,7 @@ class UploadHandler:
 
         return content_type
 
-    def is_image_file(self, filename: str, content_type: str = None) -> bool:
+    def is_image_file(self, filename: str, content_type: Optional[str] = None) -> bool:
         """Check if a file is an image based on extension or content type."""
         image_extensions = {".png", ".jpg", ".jpeg", ".webp", ".gif"}
         image_mime_types = {"image/png", "image/jpeg", "image/jpg", "image/webp", "image/gif"}
@@ -124,7 +124,7 @@ class UploadHandler:
 
         return False
 
-    def is_document_file(self, filename: str, content_type: str = None) -> bool:
+    def is_document_file(self, filename: str, content_type: Optional[str] = None) -> bool:
         """Check if a file is a document based on extension or content type."""
         document_extensions = {
             ".pdf",
@@ -174,7 +174,7 @@ class UploadHandler:
 
         return False
 
-    def is_audio_file(self, filename: str, content_type: str = None) -> bool:
+    def is_audio_file(self, filename: str, content_type: Optional[str] = None) -> bool:
         """Check if a file is an audio file based on extension or content type."""
         audio_extensions = {".webm", ".wav", ".mp3", ".m4a", ".ogg"}
         audio_mime_types = {"audio/webm", "audio/wav", "audio/mpeg", "audio/mp4", "audio/ogg"}
@@ -320,7 +320,7 @@ class UploadHandler:
         self,
         upload_id: str,
         owner: Optional[str] = None,
-        auth_manager: Any = None,
+        auth_manager: Optional[Any] = None,
         allow_admin: bool = True,
     ) -> Optional[Dict[str, Any]]:
         """Resolve an upload ID to metadata only if the caller may read it.
@@ -435,7 +435,7 @@ class UploadHandler:
             logger.error(f"Failed to get upload stats: {e}")
             return {"error": str(e)}
 
-    def save_upload(self, u: UploadFile, client_ip: str, owner: str = None) -> dict:
+    def save_upload(self, u: UploadFile, client_ip: str, owner: Optional[str] = None) -> dict:
         """Save uploaded file with enhanced security and organization."""
         # Rate limiting
         now = time.time()

@@ -405,7 +405,7 @@ def _classify_endpoint(base_url: str) -> str:
     return "api"
 
 
-def _probe_endpoint(base_url: str, api_key: str = None, timeout: int = 5) -> List[str]:
+def _probe_endpoint(base_url: str, api_key: Optional[str] = None, timeout: int = 5) -> List[str]:
     """Probe a base URL's /models endpoint and return list of model IDs.
     For Anthropic, queries their /v1/models API, falling back to hardcoded list."""
     from src.endpoint_resolver import resolve_url
@@ -492,7 +492,9 @@ def _probe_endpoint(base_url: str, api_key: str = None, timeout: int = 5) -> Lis
     return []
 
 
-def _ping_endpoint(base_url: str, api_key: str = None, timeout: float = 1.5) -> Dict[str, Any]:
+def _ping_endpoint(
+    base_url: str, api_key: Optional[str] = None, timeout: float = 1.5
+) -> Dict[str, Any]:
     """Reachability probe that does not require installed/listed models."""
     from src.endpoint_resolver import resolve_url
 

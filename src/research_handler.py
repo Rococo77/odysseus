@@ -65,7 +65,7 @@ class ResearchHandler:
         latest_message: str,
         llm_endpoint: str,
         llm_model: str,
-        llm_headers: dict = None,
+        llm_headers: Optional[dict] = None,
     ) -> str:
         """Synthesize the conversation into a single focused research query.
 
@@ -121,7 +121,7 @@ class ResearchHandler:
         query: str,
         llm_endpoint: str,
         llm_model: str,
-        llm_headers: dict = None,
+        llm_headers: Optional[dict] = None,
     ) -> Optional[dict]:
         """Generate a research plan for user review before starting research."""
         try:
@@ -181,16 +181,16 @@ class ResearchHandler:
         llm_model: str,
         max_time: int = 300,
         hard_timeout: int = 600,
-        llm_headers: dict = None,
-        on_complete: callable = None,
+        llm_headers: Optional[dict] = None,
+        on_complete: Optional[callable] = None,
         prior_report: str = "",
-        prior_findings: list = None,
-        prior_urls: set = None,
+        prior_findings: Optional[list] = None,
+        prior_urls: Optional[set] = None,
         max_rounds: int = 20,
-        search_provider: str = None,
-        category: str = None,
-        extraction_timeout: int = None,
-        extraction_concurrency: int = None,
+        search_provider: Optional[str] = None,
+        category: Optional[str] = None,
+        extraction_timeout: Optional[int] = None,
+        extraction_concurrency: Optional[int] = None,
         owner: str = "",
     ) -> dict:
         """Start research as a background task. Returns task info dict.
@@ -599,7 +599,7 @@ class ResearchHandler:
             return False
 
     @staticmethod
-    async def _probe_endpoint(endpoint: str, model: str, headers: dict = None):
+    async def _probe_endpoint(endpoint: str, model: str, headers: Optional[dict] = None):
         """Quick probe to verify the LLM endpoint/model responds before research."""
         from src.llm_core import llm_call_async
 
@@ -636,16 +636,16 @@ class ResearchHandler:
         llm_model: str,
         max_time: int = 300,
         progress_callback=None,
-        _task_entry: dict = None,
-        llm_headers: dict = None,
+        _task_entry: Optional[dict] = None,
+        llm_headers: Optional[dict] = None,
         prior_report: str = "",
-        prior_findings: list = None,
-        prior_urls: set = None,
+        prior_findings: Optional[list] = None,
+        prior_urls: Optional[set] = None,
         max_rounds: int = 20,
-        search_provider: str = None,
-        category: str = None,
-        extraction_timeout: int = None,
-        extraction_concurrency: int = None,
+        search_provider: Optional[str] = None,
+        category: Optional[str] = None,
+        extraction_timeout: Optional[int] = None,
+        extraction_concurrency: Optional[int] = None,
     ) -> str:
         """
         Run iterative deep research using the LLM-in-the-loop DeepResearcher.

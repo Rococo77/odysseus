@@ -2,6 +2,8 @@
 
 Imported by gallery_routes.py."""
 
+from typing import Optional
+
 """Gallery routes — browsable library for photos and AI-generated images."""
 
 import logging
@@ -89,7 +91,7 @@ def _extract_exif(content: bytes) -> dict:
 # ---- Helpers ----
 
 
-def _image_to_dict(img: GalleryImage, session_name: str = None) -> Dict[str, Any]:
+def _image_to_dict(img: GalleryImage, session_name: Optional[str] = None) -> Dict[str, Any]:
     return {
         "id": img.id,
         "filename": img.filename,

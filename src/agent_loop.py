@@ -377,7 +377,9 @@ def _section_text(name: str, default: str) -> str:
     return val if isinstance(val, str) and val.strip() else default
 
 
-def _assemble_prompt(tool_names: set, disabled_tools: set = None, compact: bool = False) -> str:
+def _assemble_prompt(
+    tool_names: set, disabled_tools: Optional[set] = None, compact: bool = False
+) -> str:
     """Build the system prompt with only the specified tools included."""
     disabled = disabled_tools or set()
     included = tool_names - disabled

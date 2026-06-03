@@ -111,7 +111,7 @@ class EventUpdate(BaseModel):
 # ── Helpers ──
 
 
-def _ensure_default_calendar(db, owner: str = None) -> CalendarCal:
+def _ensure_default_calendar(db, owner: Optional[str] = None) -> CalendarCal:
     """Create default calendar if none exist for this owner."""
     owner = owner or FALLBACK_OWNER
     cal = db.query(CalendarCal).filter(CalendarCal.owner == owner).first()
@@ -868,7 +868,9 @@ def setup_calendar_routes() -> APIRouter:
             db.close()
 
     @router.put("/calendars/{cal_id}")
-    async def update_calendar(request: Request, cal_id: str, name: str = None, color: str = None):
+    async def update_calendar(
+        request: Request, cal_id: str, name: Optional[str] = None, color: Optional[str] = None
+    ):
         owner = _require_user(request)
         db = SessionLocal()
         try:

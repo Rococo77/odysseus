@@ -8,7 +8,7 @@ All modules should import from here instead of accessing files directly.
 import json
 import time
 import logging
-from typing import Any
+from typing import Optional, Any
 
 from src.constants import SETTINGS_FILE, FEATURES_FILE
 
@@ -161,7 +161,7 @@ def save_settings(settings: dict):
     _invalidate_caches()
 
 
-def get_setting(key: str, default: Any = None) -> Any:
+def get_setting(key: str, default: Optional[Any] = None) -> Any:
     """Read a single setting value."""
     return load_settings().get(key, default)
 
@@ -191,7 +191,7 @@ _PER_USER_KEYS = {
 }
 
 
-def get_user_setting(key: str, owner: str = "", default: Any = None) -> Any:
+def get_user_setting(key: str, owner: str = "", default: Optional[Any] = None) -> Any:
     """Resolve `key` from the caller's per-user prefs first, falling back to
     the global setting. Only the small whitelist in `_PER_USER_KEYS` is
     eligible — for any other key this is equivalent to `get_setting(key)`.

@@ -45,7 +45,7 @@ class SessionManager:
         session = manager.get_session(session_id)
     """
 
-    def __init__(self, sessions_file: str = None):
+    def __init__(self, sessions_file: Optional[str] = None):
         # sessions_file kept for backward compat, not used
         self.sessions: Dict[str, Session] = {}
         self.load_sessions()
@@ -438,7 +438,7 @@ class SessionManager:
         endpoint_url: str,
         model: str,
         rag: bool = False,
-        owner: str = None,
+        owner: Optional[str] = None,
     ) -> Session:
         """Create a new session and save to database."""
         db = SessionLocal()

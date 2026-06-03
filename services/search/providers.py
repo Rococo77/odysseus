@@ -240,7 +240,7 @@ def brave_search(query: str, count: int = 10, time_filter: Optional[str] = None)
 
 
 def _brave_search_impl(
-    query: str, count: int, time_filter: Optional[str] = None, search_config: dict = None
+    query: str, count: int, time_filter: Optional[str] = None, search_config: Optional[dict] = None
 ) -> List[dict]:
     """Core Brave API call. Returns a list of result dicts or an empty list on failure."""
     enhanced_query = build_enhanced_query(query, time_filter)

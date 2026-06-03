@@ -3,7 +3,7 @@ import os
 import re
 import json
 import logging
-from typing import List, Dict, Set, Any, Tuple
+from typing import Optional, List, Dict, Set, Any, Tuple
 from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
@@ -237,7 +237,7 @@ class PersonalDocsManager:
             f for f in self.index if os.path.abspath(f.get("path", "")) != os.path.abspath(filepath)
         ]
 
-    def add_directory(self, directory: str, *, index: bool = True, owner: str = None):
+    def add_directory(self, directory: str, *, index: bool = True, owner: Optional[str] = None):
         """Add a directory to the tracking list and optionally index it."""
         # Normalize the path
         directory = os.path.abspath(directory)

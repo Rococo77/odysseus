@@ -17,6 +17,7 @@ from pydantic import BaseModel
 
 from core.middleware import require_admin
 from core.platform_compat import IS_WINDOWS, safe_chmod, which_tool
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -76,7 +77,9 @@ def _save_config(cfg: dict):
     safe_chmod(str(VAULT_FILE), 0o600)
 
 
-async def _run_bw(args: list, session: str = None, input_text: str = None) -> tuple:
+async def _run_bw(
+    args: list, session: Optional[str] = None, input_text: Optional[str] = None
+) -> tuple:
     env = {}
     env.update(os.environ)
     if session:

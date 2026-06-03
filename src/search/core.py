@@ -63,14 +63,14 @@ def get_search_config() -> Dict[str, Any]:
     return config
 
 
-def update_search_config(api_key: str = None, **kwargs):
+def update_search_config(api_key: Optional[str] = None, **kwargs):
     """Update search configuration (e.g. Brave API key)."""
     if api_key:
         SEARCH_CONFIG["brave_api_key"] = api_key
 
 
 def _call_provider(
-    provider_name: str, query: str, count: int, time_filter: str = None
+    provider_name: str, query: str, count: int, time_filter: Optional[str] = None
 ) -> List[dict]:
     """Call a search provider by name. Returns list of results or empty list."""
     if provider_name == "searxng":
@@ -115,7 +115,9 @@ def _build_provider_chain(primary: str) -> List[str]:
 # ----------------------------------------------------------------------
 # Unified search with caching and retry
 # ----------------------------------------------------------------------
-def searxng_search_results(query: str, count: int = 10, time_filter: str = None) -> list[dict]:
+def searxng_search_results(
+    query: str, count: int = 10, time_filter: Optional[str] = None
+) -> list[dict]:
     """Perform a web search using configured provider with caching and retry."""
     settings = _get_search_settings()
     search_provider = settings.get("search_provider", "searxng")
@@ -232,7 +234,7 @@ def comprehensive_web_search(
     query: str,
     max_pages: int = 3,
     max_workers: int = 4,
-    time_filter: str = None,
+    time_filter: Optional[str] = None,
     domain_whitelist: Optional[Set[str]] = None,
     domain_blacklist: Optional[Set[str]] = None,
     content_type: Optional[str] = None,

@@ -4,7 +4,7 @@ Used by /api/conversations/topics and /api/memory/extract fallback.
 """
 
 import re
-from typing import Dict, Any, List
+from typing import Optional, Dict, Any, List
 
 TOPIC_KEYWORDS: Dict[str, List[str]] = {
     "Technology": [
@@ -56,7 +56,7 @@ TOPIC_KEYWORDS: Dict[str, List[str]] = {
 }
 
 
-def analyze_topics(session_manager, owner: str = None) -> Dict[str, Any]:
+def analyze_topics(session_manager, owner: Optional[str] = None) -> Dict[str, Any]:
     """
     Scan non-archived sessions and return topic frequency data.
     If owner is set, only include sessions belonging to that user.

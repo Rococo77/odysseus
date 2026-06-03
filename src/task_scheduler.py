@@ -7,7 +7,7 @@ import re
 import time
 import uuid
 from datetime import datetime, timedelta
-from typing import Any, Awaitable, Callable, Dict, Tuple
+from typing import Optional, Any, Awaitable, Callable, Dict, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -62,11 +62,11 @@ async def _cached(key: Tuple, ttl: float, fetch: Callable[[], Awaitable[Any]]) -
 def compute_next_run(
     schedule: str,
     scheduled_time: str,
-    scheduled_day: int = None,
-    scheduled_date: datetime = None,
-    after: datetime = None,
-    cron_expression: str = None,
-    tz_name: str = None,
+    scheduled_day: Optional[int] = None,
+    scheduled_date: Optional[datetime] = None,
+    after: Optional[datetime] = None,
+    cron_expression: Optional[str] = None,
+    tz_name: Optional[str] = None,
 ) -> datetime | None:
     """Compute the next run datetime (stored as naive UTC) based on schedule type.
 
@@ -325,7 +325,12 @@ class TaskScheduler:
         self._concurrency_cap = 1
 
     def add_notification(
-        self, task_name: str, status: str, task_id: str = None, owner: str = None, body: str = None
+        self,
+        task_name: str,
+        status: str,
+        task_id: Optional[str] = None,
+        owner: Optional[str] = None,
+        body: Optional[str] = None,
     ):
         """Store a notification about a completed task run. Tagged with the
         task's owner so `pop_notifications` can return only that user's
@@ -346,7 +351,7 @@ class TaskScheduler:
         if len(self._pending_notifications) > 50:
             self._pending_notifications = self._pending_notifications[-50:]
 
-    def pop_notifications(self, owner: str = None) -> list:
+    def pop_notifications(self, owner: Optional[str] = None) -> list:
         """Return and clear pending notifications.
 
         When `owner` is set, only matching notifications are returned (and
@@ -1503,7 +1508,7 @@ class TaskScheduler:
 
         return result
 
-    async def _deliver_task_result(self, task, result: str, db, model: str = None):
+    async def _deliver_task_result(self, task, result: str, db, model: Optional[str] = None):
         """Deliver a completed task result according to output_target.
 
         This is intentionally shared by LLM/research/action tasks so built-in
