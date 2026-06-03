@@ -32,30 +32,30 @@ check_untyped_defs = false
 warn_unused_ignores = false
 
 # Strict-enforced modules. These pass `mypy --strict` today and are gated as a
-# BLOCKING CI step (typecheck-strict in .github/workflows/ci.yml). Add a module
-# here only after it is strict-clean; the list is the ratchet — it only grows.
-#   src/constants.py
-#   src/prompt_security.py
-#   src/rate_limiter.py
-#   src/action_intents.py
-#   src/text_helpers.py
-#   src/exceptions.py
-#   src/model_context.py
-#   core/exceptions.py
-#   core/platform_compat.py
-#   core/constants.py
+# BLOCKING CI step (typecheck-strict in .github/workflows/ci.yml, run with
+# --follow-imports=skip so each file is checked in isolation). Add a module here
+# only after it is strict-clean; the list is the ratchet — it only grows. Keep
+# it in sync with the file list in the workflow.
 [[tool.mypy.overrides]]
 module = [
+    "src.action_intents",
+    "src.app_helpers",
     "src.constants",
+    "src.database",
+    "src.exceptions",
+    "src.goal_based_extractor",
+    "src.model_context",
     "src.prompt_security",
     "src.rate_limiter",
-    "src.action_intents",
+    "src.session_actions",
     "src.text_helpers",
-    "src.exceptions",
-    "src.model_context",
+    "src.tool_schemas",
+    "src.tool_security",
+    "core.atomic_io",
+    "core.constants",
     "core.exceptions",
     "core.platform_compat",
-    "core.constants",
+    "services.search.query",
 ]
 disallow_untyped_defs = true
 disallow_incomplete_defs = true

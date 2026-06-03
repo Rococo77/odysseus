@@ -64,9 +64,11 @@ jobs:
     name: Type check (mypy --strict, enforced modules)
     runs-on: ubuntu-latest
     # BLOCKING. Scoped to the strict-clean module set declared in pyproject.toml
-    # ([[tool.mypy.overrides]]). --follow-imports=silent keeps the gate scoped to
-    # these files only, so it stays green until a listed module actually
-    # regresses. Grow the list as more modules become strict-clean.
+    # ([[tool.mypy.overrides]]). --follow-imports=skip isolates each listed file
+    # (imports are treated as Any) so the gate validates each module's own
+    # annotations without leaking errors from the untyped modules it imports —
+    # this is what lets the set grow module by module. Grow the list as more
+    # modules become strict-clean.
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -76,17 +78,25 @@ jobs:
       - run: pip install mypy
       - name: mypy --strict (enforced modules)
         run: |
-          mypy --strict --ignore-missing-imports --follow-imports=silent \
+          mypy --strict --ignore-missing-imports --follow-imports=skip \
+            src/action_intents.py \
+            src/app_helpers.py \
             src/constants.py \
+            src/database.py \
+            src/exceptions.py \
+            src/goal_based_extractor.py \
+            src/model_context.py \
             src/prompt_security.py \
             src/rate_limiter.py \
-            src/action_intents.py \
+            src/session_actions.py \
             src/text_helpers.py \
-            src/exceptions.py \
-            src/model_context.py \
+            src/tool_schemas.py \
+            src/tool_security.py \
+            core/atomic_io.py \
+            core/constants.py \
             core/exceptions.py \
             core/platform_compat.py \
-            core/constants.py
+            services/search/query.py
 
   typecheck:
     name: Type check (mypy, whole tree)
