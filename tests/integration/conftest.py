@@ -39,12 +39,32 @@ os.environ.setdefault("LOCALHOST_BYPASS", "true")
 sys.modules.pop("src.database", None)
 
 
+TEST_USER = "tester"
+
+
 @pytest.fixture(scope="session")
 def client():
-    """A TestClient over the fully wired app, backed by a fresh SQLite schema."""
+    """A TestClient over the fully wired app, backed by a fresh SQLite schema.
+
+    Auth is off (no AuthMiddleware), so we inject a fixed authenticated user via
+    a tiny test middleware: `get_current_user(request)` reads
+    `request.state.current_user` everywhere, so this satisfies both the
+    `require_user` dependency and the direct `_verify_session_owner` checks
+    without standing up the real cookie/login flow. Rows created in tests are
+    therefore owned by TEST_USER.
+    """
+    from starlette.middleware.base import BaseHTTPMiddleware
+
     from app import app
     from core.database import Base, engine
 
+    class _InjectUser(BaseHTTPMiddleware):
+        async def dispatch(self, request, call_next):
+            request.state.current_user = TEST_USER
+            request.state.api_token = False
+            return await call_next(request)
+
+    app.add_middleware(_InjectUser)
     Base.metadata.create_all(engine)
 
     from fastapi.testclient import TestClient
@@ -52,8 +72,46 @@ def client():
     test_client = TestClient(app)
     yield test_client
 
-    # Best-effort cleanup of the throwaway DB file.
     try:
         os.remove(_DB_PATH)
     except OSError:
         pass
+
+
+@pytest.fixture
+def mock_llm(monkeypatch):
+    """Replace the non-streaming LLM call so /api/chat returns a canned reply
+    without any network. Returns the canned text for assertions."""
+    canned = "Canned assistant reply for integration tests."
+
+    async def _fake_llm_call_async(*args, **kwargs):
+        return canned
+
+    monkeypatch.setattr("routes.chat_routes.llm_call_async", _fake_llm_call_async)
+    return canned
+
+
+@pytest.fixture
+def seed_endpoint():
+    """Insert an enabled ModelEndpoint so sessions pointing at it aren't treated
+    as orphaned. Returns (base_url, chat_url, model)."""
+    from core.database import ModelEndpoint, SessionLocal
+
+    base_url = "http://test.local/v1"
+    chat_url = base_url + "/chat/completions"
+    model = "test-model"
+
+    db = SessionLocal()
+    try:
+        ep = ModelEndpoint(
+            id="int-test-ep",
+            name="Integration Test Endpoint",
+            base_url=base_url,
+            is_enabled=True,
+            owner=TEST_USER,
+        )
+        db.merge(ep)
+        db.commit()
+    finally:
+        db.close()
+    return base_url, chat_url, model
