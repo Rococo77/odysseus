@@ -116,9 +116,10 @@ jobs:
   typecheck:
     name: Type check (mypy, whole tree)
     runs-on: ubuntu-latest
-    # Non-blocking, informational. Tracks the broader typing debt while the
-    # strict set above ratchets up. See docs/plans/03-ci-pipeline.md.
-    continue-on-error: true
+    # Informational only — tracks the broader typing debt while the strict set
+    # above ratchets up. The step never fails the check (|| true) so it reports
+    # green on the PR; read the log/summary for the current error count. See
+    # docs/plans/03-ci-pipeline.md.
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -126,4 +127,9 @@ jobs:
           python-version: "3.11"
           cache: pip
       - run: pip install mypy
-      - run: mypy src core
+      - name: mypy (whole tree, informational)
+        run: |
+          mypy src core | tee mypy-wholetree.txt || true
+          echo "### mypy whole-tree (informational)" >> "$GITHUB_STEP_SUMMARY"
+          tail -1 mypy-wholetree.txt >> "$GITHUB_STEP_SUMMARY"
+
