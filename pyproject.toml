@@ -1,6 +1,14 @@
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
+# Integration tests boot the full app (real DB, real router wiring) and must run
+# in their own process — they can't share interpreter state with the unit tests,
+# which stub heavy deps. Excluded from the default run; CI runs them in a
+# dedicated step with `-m integration`. Locally: `pytest -m integration`.
+addopts = "-m 'not integration'"
+markers = [
+    "integration: full-app TestClient integration tests (separate process; see tests/integration/)",
+]
 
 [tool.ruff]
 target-version = "py311"

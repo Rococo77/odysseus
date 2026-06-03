@@ -1,0 +1,1098 @@
+{
+  "/": [
+    "GET"
+  ],
+  "/api/admin/wipe/{kind}": [
+    "DELETE"
+  ],
+  "/api/assistant/available-timezones": [
+    "GET"
+  ],
+  "/api/assistant/run-status/{task_id}": [
+    "GET"
+  ],
+  "/api/assistant/run/{task_id}": [
+    "POST"
+  ],
+  "/api/assistant/session": [
+    "GET"
+  ],
+  "/api/assistant/settings": [
+    "GET",
+    "PATCH"
+  ],
+  "/api/auth/2fa/confirm": [
+    "POST"
+  ],
+  "/api/auth/2fa/disable": [
+    "POST"
+  ],
+  "/api/auth/2fa/setup": [
+    "POST"
+  ],
+  "/api/auth/2fa/status": [
+    "GET"
+  ],
+  "/api/auth/change-password": [
+    "POST"
+  ],
+  "/api/auth/features": [
+    "GET",
+    "POST"
+  ],
+  "/api/auth/integrations": [
+    "GET",
+    "POST"
+  ],
+  "/api/auth/integrations/presets": [
+    "GET"
+  ],
+  "/api/auth/integrations/{integration_id}": [
+    "DELETE",
+    "PUT"
+  ],
+  "/api/auth/integrations/{integration_id}/test": [
+    "POST"
+  ],
+  "/api/auth/login": [
+    "POST"
+  ],
+  "/api/auth/logout": [
+    "POST"
+  ],
+  "/api/auth/settings": [
+    "GET",
+    "POST"
+  ],
+  "/api/auth/setup": [
+    "POST"
+  ],
+  "/api/auth/signup": [
+    "POST"
+  ],
+  "/api/auth/signup-toggle": [
+    "POST"
+  ],
+  "/api/auth/status": [
+    "GET"
+  ],
+  "/api/auth/users": [
+    "DELETE",
+    "GET",
+    "POST"
+  ],
+  "/api/auth/users/{username}/privileges": [
+    "PUT"
+  ],
+  "/api/auth/users/{username}/rename": [
+    "PUT"
+  ],
+  "/api/calendar/calendars": [
+    "GET",
+    "POST"
+  ],
+  "/api/calendar/calendars/{cal_id}": [
+    "DELETE",
+    "PUT"
+  ],
+  "/api/calendar/config": [
+    "GET",
+    "POST"
+  ],
+  "/api/calendar/events": [
+    "GET",
+    "POST"
+  ],
+  "/api/calendar/events/{uid}": [
+    "DELETE",
+    "PUT"
+  ],
+  "/api/calendar/export/{cal_id}": [
+    "GET"
+  ],
+  "/api/calendar/import": [
+    "POST"
+  ],
+  "/api/calendar/quick-parse": [
+    "POST"
+  ],
+  "/api/calendar/sync": [
+    "POST"
+  ],
+  "/api/calendar/test": [
+    "POST"
+  ],
+  "/api/chat": [
+    "POST"
+  ],
+  "/api/chat/resume/{session_id}": [
+    "GET"
+  ],
+  "/api/chat/stop/{session_id}": [
+    "POST"
+  ],
+  "/api/chat/stream_status/{session_id}": [
+    "GET"
+  ],
+  "/api/chat_stream": [
+    "POST"
+  ],
+  "/api/cleanup": [
+    "POST"
+  ],
+  "/api/cleanup/preview": [
+    "GET"
+  ],
+  "/api/compare/history": [
+    "GET"
+  ],
+  "/api/compare/record": [
+    "POST"
+  ],
+  "/api/compare/start": [
+    "POST"
+  ],
+  "/api/compare/{comp_id}": [
+    "DELETE"
+  ],
+  "/api/compare/{comp_id}/vote": [
+    "POST"
+  ],
+  "/api/contacts/add": [
+    "POST"
+  ],
+  "/api/contacts/clear": [
+    "DELETE"
+  ],
+  "/api/contacts/config": [
+    "GET",
+    "PUT"
+  ],
+  "/api/contacts/export": [
+    "GET"
+  ],
+  "/api/contacts/import": [
+    "POST"
+  ],
+  "/api/contacts/list": [
+    "GET"
+  ],
+  "/api/contacts/search": [
+    "GET"
+  ],
+  "/api/contacts/{uid}": [
+    "DELETE",
+    "PUT"
+  ],
+  "/api/conversations/topics": [
+    "GET"
+  ],
+  "/api/cookbook/gpus": [
+    "GET"
+  ],
+  "/api/cookbook/hf-latest": [
+    "GET"
+  ],
+  "/api/cookbook/kill-pid": [
+    "POST"
+  ],
+  "/api/cookbook/packages": [
+    "GET"
+  ],
+  "/api/cookbook/packages/install": [
+    "POST"
+  ],
+  "/api/cookbook/setup": [
+    "POST"
+  ],
+  "/api/cookbook/ssh-key": [
+    "GET",
+    "POST"
+  ],
+  "/api/cookbook/state": [
+    "GET",
+    "POST"
+  ],
+  "/api/cookbook/tasks/status": [
+    "GET"
+  ],
+  "/api/db/stats": [
+    "GET"
+  ],
+  "/api/default-chat": [
+    "GET"
+  ],
+  "/api/discover": [
+    "GET"
+  ],
+  "/api/document": [
+    "POST"
+  ],
+  "/api/document/{doc_id}": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+  ],
+  "/api/document/{doc_id}/ai-fill-annotations": [
+    "POST"
+  ],
+  "/api/document/{doc_id}/archive": [
+    "POST"
+  ],
+  "/api/document/{doc_id}/export-pdf": [
+    "GET"
+  ],
+  "/api/document/{doc_id}/export-pdf/preview": [
+    "POST"
+  ],
+  "/api/document/{doc_id}/extract-pdf-text": [
+    "POST"
+  ],
+  "/api/document/{doc_id}/page/{page_no}.png": [
+    "GET"
+  ],
+  "/api/document/{doc_id}/prepare-signed-reply": [
+    "POST"
+  ],
+  "/api/document/{doc_id}/render-pages": [
+    "GET"
+  ],
+  "/api/document/{doc_id}/render-pdf": [
+    "GET"
+  ],
+  "/api/document/{doc_id}/restore/{num}": [
+    "POST"
+  ],
+  "/api/document/{doc_id}/version/{num}": [
+    "GET"
+  ],
+  "/api/document/{doc_id}/versions": [
+    "GET"
+  ],
+  "/api/documents/ai-tidy": [
+    "POST"
+  ],
+  "/api/documents/export-zip": [
+    "POST"
+  ],
+  "/api/documents/import-pdf": [
+    "POST"
+  ],
+  "/api/documents/library": [
+    "GET"
+  ],
+  "/api/documents/tidy": [
+    "POST"
+  ],
+  "/api/documents/{session_id}": [
+    "GET"
+  ],
+  "/api/editor-drafts": [
+    "GET",
+    "POST"
+  ],
+  "/api/editor-drafts/{draft_id}": [
+    "DELETE",
+    "GET",
+    "PUT"
+  ],
+  "/api/email/accounts": [
+    "GET",
+    "POST"
+  ],
+  "/api/email/accounts/test": [
+    "POST"
+  ],
+  "/api/email/accounts/{account_id}": [
+    "DELETE",
+    "PUT"
+  ],
+  "/api/email/accounts/{account_id}/set-default": [
+    "POST"
+  ],
+  "/api/email/ai-reply": [
+    "POST"
+  ],
+  "/api/email/archive/{uid}": [
+    "POST"
+  ],
+  "/api/email/attachment-as-doc/{uid}/{index}": [
+    "POST"
+  ],
+  "/api/email/attachment-path/{uid}/{index}": [
+    "POST"
+  ],
+  "/api/email/attachment/{uid}/{index}": [
+    "GET"
+  ],
+  "/api/email/attachments/{uid}": [
+    "GET"
+  ],
+  "/api/email/clear-answered/{uid}": [
+    "POST"
+  ],
+  "/api/email/compose-upload": [
+    "POST"
+  ],
+  "/api/email/compose-upload/{token}": [
+    "DELETE"
+  ],
+  "/api/email/config": [
+    "GET",
+    "PUT"
+  ],
+  "/api/email/contacts": [
+    "GET"
+  ],
+  "/api/email/delete-permanent/{uid}": [
+    "DELETE"
+  ],
+  "/api/email/delete/{uid}": [
+    "DELETE"
+  ],
+  "/api/email/draft": [
+    "POST"
+  ],
+  "/api/email/extract-style": [
+    "POST"
+  ],
+  "/api/email/folders": [
+    "GET"
+  ],
+  "/api/email/list": [
+    "GET"
+  ],
+  "/api/email/mark-answered/{uid}": [
+    "POST"
+  ],
+  "/api/email/mark-read/{uid}": [
+    "POST"
+  ],
+  "/api/email/mark-unread/{uid}": [
+    "POST"
+  ],
+  "/api/email/move/{uid}": [
+    "POST"
+  ],
+  "/api/email/odysseus/reminders": [
+    "DELETE"
+  ],
+  "/api/email/read/{uid}": [
+    "GET"
+  ],
+  "/api/email/resolve-contact": [
+    "GET"
+  ],
+  "/api/email/schedule": [
+    "POST"
+  ],
+  "/api/email/scheduled": [
+    "GET"
+  ],
+  "/api/email/scheduled/{sid}": [
+    "DELETE"
+  ],
+  "/api/email/search": [
+    "GET"
+  ],
+  "/api/email/send": [
+    "POST"
+  ],
+  "/api/email/style": [
+    "GET",
+    "PUT"
+  ],
+  "/api/email/summarize": [
+    "POST"
+  ],
+  "/api/email/urgency-state": [
+    "GET"
+  ],
+  "/api/email/{uid}/unflag-spam": [
+    "POST"
+  ],
+  "/api/embeddings/endpoint": [
+    "DELETE",
+    "GET",
+    "POST"
+  ],
+  "/api/embeddings/models": [
+    "GET"
+  ],
+  "/api/embeddings/models/{model_name}": [
+    "DELETE"
+  ],
+  "/api/embeddings/models/{model_name}/download": [
+    "POST"
+  ],
+  "/api/embeddings/models/{model_name}/status": [
+    "GET"
+  ],
+  "/api/emoji/{code}.svg": [
+    "GET"
+  ],
+  "/api/export": [
+    "GET"
+  ],
+  "/api/fonts/custom": [
+    "GET"
+  ],
+  "/api/gallery/ai-tag-batch": [
+    "POST"
+  ],
+  "/api/gallery/ai-upscale": [
+    "POST"
+  ],
+  "/api/gallery/albums": [
+    "GET",
+    "POST"
+  ],
+  "/api/gallery/albums/{album_id}": [
+    "DELETE",
+    "PUT"
+  ],
+  "/api/gallery/albums/{album_id}/add": [
+    "POST"
+  ],
+  "/api/gallery/albums/{album_id}/remove": [
+    "POST"
+  ],
+  "/api/gallery/clear-ai-tags": [
+    "POST"
+  ],
+  "/api/gallery/clear-user-tags": [
+    "POST"
+  ],
+  "/api/gallery/dedupe-tags": [
+    "POST"
+  ],
+  "/api/gallery/download-zip": [
+    "POST"
+  ],
+  "/api/gallery/library": [
+    "GET"
+  ],
+  "/api/gallery/stats": [
+    "GET"
+  ],
+  "/api/gallery/style-transfer": [
+    "POST"
+  ],
+  "/api/gallery/tags": [
+    "GET"
+  ],
+  "/api/gallery/upload": [
+    "POST"
+  ],
+  "/api/gallery/{image_id}": [
+    "DELETE",
+    "GET",
+    "PATCH"
+  ],
+  "/api/gallery/{image_id}/ai-tag": [
+    "POST"
+  ],
+  "/api/gallery/{image_id}/favorite": [
+    "POST"
+  ],
+  "/api/gallery/{image_id}/rename": [
+    "POST"
+  ],
+  "/api/gallery/{image_id}/replace": [
+    "POST"
+  ],
+  "/api/gallery/{image_id}/rotate": [
+    "POST"
+  ],
+  "/api/generated-image/{filename}": [
+    "GET"
+  ],
+  "/api/health": [
+    "GET"
+  ],
+  "/api/history/{session_id}": [
+    "GET"
+  ],
+  "/api/history/{sid}": [
+    "GET"
+  ],
+  "/api/hwfit/image-models": [
+    "GET"
+  ],
+  "/api/hwfit/models": [
+    "GET"
+  ],
+  "/api/hwfit/system": [
+    "GET"
+  ],
+  "/api/image/denoise": [
+    "POST"
+  ],
+  "/api/image/enhance-face": [
+    "POST"
+  ],
+  "/api/image/harmonize": [
+    "POST"
+  ],
+  "/api/image/inpaint": [
+    "POST"
+  ],
+  "/api/image/remove-bg": [
+    "POST"
+  ],
+  "/api/image/sharpen": [
+    "POST"
+  ],
+  "/api/image/upscale-local": [
+    "POST"
+  ],
+  "/api/import": [
+    "POST"
+  ],
+  "/api/inject_context/{session_id}": [
+    "POST"
+  ],
+  "/api/mcp/oauth/authorize/{server_id}": [
+    "GET"
+  ],
+  "/api/mcp/oauth/callback": [
+    "GET"
+  ],
+  "/api/mcp/oauth/exchange/{server_id}": [
+    "POST"
+  ],
+  "/api/mcp/servers": [
+    "GET",
+    "POST"
+  ],
+  "/api/mcp/servers/{server_id}": [
+    "DELETE",
+    "PATCH"
+  ],
+  "/api/mcp/servers/{server_id}/reconnect": [
+    "POST"
+  ],
+  "/api/mcp/servers/{server_id}/tools": [
+    "GET",
+    "PATCH"
+  ],
+  "/api/mcp/tools": [
+    "GET"
+  ],
+  "/api/memory": [
+    "GET"
+  ],
+  "/api/memory/add": [
+    "POST"
+  ],
+  "/api/memory/audit": [
+    "POST"
+  ],
+  "/api/memory/by-session/{session_id}": [
+    "GET"
+  ],
+  "/api/memory/debug": [
+    "POST"
+  ],
+  "/api/memory/extract": [
+    "POST"
+  ],
+  "/api/memory/import": [
+    "POST"
+  ],
+  "/api/memory/search": [
+    "POST"
+  ],
+  "/api/memory/timeline": [
+    "GET"
+  ],
+  "/api/memory/{memory_id}": [
+    "DELETE",
+    "GET",
+    "PUT"
+  ],
+  "/api/memory/{memory_id}/pin": [
+    "POST"
+  ],
+  "/api/model-endpoints": [
+    "GET",
+    "POST"
+  ],
+  "/api/model-endpoints/probe-local": [
+    "GET"
+  ],
+  "/api/model-endpoints/test": [
+    "POST"
+  ],
+  "/api/model-endpoints/{ep_id}": [
+    "DELETE",
+    "PATCH"
+  ],
+  "/api/model-endpoints/{ep_id}/dependents": [
+    "GET"
+  ],
+  "/api/model-endpoints/{ep_id}/models": [
+    "GET",
+    "PATCH"
+  ],
+  "/api/model-endpoints/{ep_id}/probe": [
+    "GET"
+  ],
+  "/api/model/cached": [
+    "GET"
+  ],
+  "/api/model/download": [
+    "POST"
+  ],
+  "/api/model/serve": [
+    "POST"
+  ],
+  "/api/models": [
+    "GET"
+  ],
+  "/api/notes": [
+    "GET",
+    "POST"
+  ],
+  "/api/notes/fire-reminder": [
+    "POST"
+  ],
+  "/api/notes/reorder": [
+    "POST"
+  ],
+  "/api/notes/{note_id}": [
+    "DELETE",
+    "GET",
+    "PUT"
+  ],
+  "/api/notes/{note_id}/archive": [
+    "POST"
+  ],
+  "/api/notes/{note_id}/items/{index}/toggle": [
+    "POST"
+  ],
+  "/api/notes/{note_id}/pin": [
+    "POST"
+  ],
+  "/api/personal": [
+    "GET"
+  ],
+  "/api/personal/add_directory": [
+    "POST"
+  ],
+  "/api/personal/file": [
+    "DELETE"
+  ],
+  "/api/personal/reload": [
+    "POST"
+  ],
+  "/api/personal/remove_directory": [
+    "DELETE"
+  ],
+  "/api/personal/upload": [
+    "POST"
+  ],
+  "/api/ping": [
+    "GET"
+  ],
+  "/api/prefs": [
+    "GET"
+  ],
+  "/api/prefs/{key}": [
+    "GET",
+    "PUT"
+  ],
+  "/api/presets": [
+    "GET"
+  ],
+  "/api/presets/custom": [
+    "POST"
+  ],
+  "/api/presets/expand": [
+    "POST"
+  ],
+  "/api/presets/groups": [
+    "GET",
+    "POST"
+  ],
+  "/api/presets/templates": [
+    "GET",
+    "POST"
+  ],
+  "/api/presets/templates/{template_id}": [
+    "DELETE"
+  ],
+  "/api/probe": [
+    "GET"
+  ],
+  "/api/probe-selected": [
+    "POST"
+  ],
+  "/api/providers": [
+    "GET"
+  ],
+  "/api/rag/stats": [
+    "GET"
+  ],
+  "/api/research/active": [
+    "GET"
+  ],
+  "/api/research/cancel/{session_id}": [
+    "POST"
+  ],
+  "/api/research/detail/{session_id}": [
+    "GET"
+  ],
+  "/api/research/library": [
+    "GET"
+  ],
+  "/api/research/report/{session_id}": [
+    "GET"
+  ],
+  "/api/research/result-peek/{session_id}": [
+    "POST"
+  ],
+  "/api/research/result/{session_id}": [
+    "POST"
+  ],
+  "/api/research/spinoff/{session_id}": [
+    "POST"
+  ],
+  "/api/research/start": [
+    "POST"
+  ],
+  "/api/research/status/{session_id}": [
+    "GET"
+  ],
+  "/api/research/stream/{session_id}": [
+    "GET"
+  ],
+  "/api/research/{session_id}": [
+    "DELETE"
+  ],
+  "/api/research/{session_id}/archive": [
+    "POST"
+  ],
+  "/api/research/{session_id}/hide-image": [
+    "POST"
+  ],
+  "/api/research/{session_id}/unhide-images": [
+    "POST"
+  ],
+  "/api/rewrite": [
+    "POST"
+  ],
+  "/api/runtime": [
+    "GET"
+  ],
+  "/api/search": [
+    "GET",
+    "POST"
+  ],
+  "/api/search/config": [
+    "GET"
+  ],
+  "/api/search/providers": [
+    "GET"
+  ],
+  "/api/search/query": [
+    "POST"
+  ],
+  "/api/session": [
+    "POST"
+  ],
+  "/api/session/openai": [
+    "POST"
+  ],
+  "/api/session/{session_id}/compact": [
+    "POST"
+  ],
+  "/api/session/{session_id}/context_info": [
+    "GET"
+  ],
+  "/api/session/{session_id}/delete-messages": [
+    "POST"
+  ],
+  "/api/session/{session_id}/edit-message": [
+    "POST"
+  ],
+  "/api/session/{session_id}/fork": [
+    "POST"
+  ],
+  "/api/session/{session_id}/important": [
+    "POST"
+  ],
+  "/api/session/{session_id}/mark-stopped": [
+    "POST"
+  ],
+  "/api/session/{session_id}/merge-last-assistant": [
+    "POST"
+  ],
+  "/api/session/{session_id}/message": [
+    "POST"
+  ],
+  "/api/session/{session_id}/truncate": [
+    "POST"
+  ],
+  "/api/session/{session_id}/update-last-meta": [
+    "POST"
+  ],
+  "/api/session/{sid}": [
+    "DELETE",
+    "PATCH"
+  ],
+  "/api/session/{sid}/archive": [
+    "POST"
+  ],
+  "/api/session/{sid}/delete": [
+    "POST"
+  ],
+  "/api/session/{sid}/export": [
+    "GET"
+  ],
+  "/api/session/{sid}/inject_messages": [
+    "POST"
+  ],
+  "/api/session/{sid}/unarchive": [
+    "POST"
+  ],
+  "/api/sessions": [
+    "GET"
+  ],
+  "/api/sessions/all": [
+    "DELETE"
+  ],
+  "/api/sessions/archived": [
+    "GET"
+  ],
+  "/api/sessions/auto-sort": [
+    "POST"
+  ],
+  "/api/sessions/bulk-delete": [
+    "POST"
+  ],
+  "/api/sessions/save": [
+    "POST"
+  ],
+  "/api/shell/exec": [
+    "POST"
+  ],
+  "/api/shell/stream": [
+    "POST"
+  ],
+  "/api/signatures": [
+    "GET",
+    "POST"
+  ],
+  "/api/signatures/{sig_id}": [
+    "DELETE"
+  ],
+  "/api/skills": [
+    "GET"
+  ],
+  "/api/skills/add": [
+    "POST"
+  ],
+  "/api/skills/audit-all": [
+    "POST"
+  ],
+  "/api/skills/audit-all/cancel": [
+    "POST"
+  ],
+  "/api/skills/audit-all/status": [
+    "GET"
+  ],
+  "/api/skills/builtin": [
+    "GET"
+  ],
+  "/api/skills/builtin/{name}": [
+    "DELETE",
+    "GET",
+    "PUT"
+  ],
+  "/api/skills/index": [
+    "GET"
+  ],
+  "/api/skills/search": [
+    "POST"
+  ],
+  "/api/skills/{skill_id}": [
+    "DELETE",
+    "GET",
+    "PUT"
+  ],
+  "/api/skills/{skill_id}/markdown": [
+    "GET",
+    "POST"
+  ],
+  "/api/skills/{skill_id}/test": [
+    "POST"
+  ],
+  "/api/skills/{skill_id}/test-status": [
+    "GET"
+  ],
+  "/api/stt/stats": [
+    "GET"
+  ],
+  "/api/stt/transcribe": [
+    "POST"
+  ],
+  "/api/tasks": [
+    "GET",
+    "POST"
+  ],
+  "/api/tasks/meta/actions": [
+    "GET"
+  ],
+  "/api/tasks/meta/events": [
+    "GET"
+  ],
+  "/api/tasks/meta/output-targets": [
+    "GET"
+  ],
+  "/api/tasks/notifications": [
+    "GET"
+  ],
+  "/api/tasks/onboarding": [
+    "GET",
+    "POST"
+  ],
+  "/api/tasks/parse": [
+    "POST"
+  ],
+  "/api/tasks/runs/recent": [
+    "GET"
+  ],
+  "/api/tasks/{task_id}": [
+    "DELETE",
+    "GET",
+    "PUT"
+  ],
+  "/api/tasks/{task_id}/pause": [
+    "POST"
+  ],
+  "/api/tasks/{task_id}/resume": [
+    "POST"
+  ],
+  "/api/tasks/{task_id}/revert": [
+    "POST"
+  ],
+  "/api/tasks/{task_id}/run": [
+    "POST"
+  ],
+  "/api/tasks/{task_id}/runs": [
+    "GET"
+  ],
+  "/api/tasks/{task_id}/webhook-regenerate": [
+    "POST"
+  ],
+  "/api/tasks/{task_id}/webhook/{token}": [
+    "POST"
+  ],
+  "/api/test-research": [
+    "POST"
+  ],
+  "/api/test/youtube": [
+    "GET"
+  ],
+  "/api/tokens": [
+    "GET",
+    "POST"
+  ],
+  "/api/tokens/{token_id}": [
+    "DELETE"
+  ],
+  "/api/tools": [
+    "GET",
+    "POST"
+  ],
+  "/api/tts/clear-cache": [
+    "POST"
+  ],
+  "/api/tts/stats": [
+    "GET"
+  ],
+  "/api/tts/synthesize": [
+    "POST"
+  ],
+  "/api/upload": [
+    "POST"
+  ],
+  "/api/upload/cleanup": [
+    "POST"
+  ],
+  "/api/upload/stats": [
+    "GET"
+  ],
+  "/api/upload/{file_id}": [
+    "GET"
+  ],
+  "/api/upload/{file_id}/vision": [
+    "GET",
+    "PUT"
+  ],
+  "/api/v1/chat": [
+    "POST"
+  ],
+  "/api/vault/config": [
+    "GET",
+    "POST"
+  ],
+  "/api/vault/lock": [
+    "POST"
+  ],
+  "/api/vault/login": [
+    "POST"
+  ],
+  "/api/vault/logout": [
+    "POST"
+  ],
+  "/api/vault/unlock": [
+    "POST"
+  ],
+  "/api/version": [
+    "GET"
+  ],
+  "/api/webhooks": [
+    "GET",
+    "POST"
+  ],
+  "/api/webhooks/{webhook_id}": [
+    "DELETE",
+    "PATCH"
+  ],
+  "/api/webhooks/{webhook_id}/test": [
+    "POST"
+  ],
+  "/backgrounds": [
+    "GET"
+  ],
+  "/calendar": [
+    "GET"
+  ],
+  "/cookbook": [
+    "GET"
+  ],
+  "/email": [
+    "GET"
+  ],
+  "/gallery": [
+    "GET"
+  ],
+  "/library": [
+    "GET"
+  ],
+  "/login": [
+    "GET"
+  ],
+  "/memory": [
+    "GET"
+  ],
+  "/notes": [
+    "GET"
+  ],
+  "/tasks": [
+    "GET"
+  ]
+}
