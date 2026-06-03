@@ -28,7 +28,11 @@ def setup_api_token_routes() -> APIRouter:
                     "name": t.name,
                     "owner": getattr(t, "owner", None),
                     "token_prefix": t.token_prefix,
-                    "scopes": [s.strip() for s in (getattr(t, "scopes", "") or DEFAULT_SCOPES).split(",") if s.strip()],
+                    "scopes": [
+                        s.strip()
+                        for s in (getattr(t, "scopes", "") or DEFAULT_SCOPES).split(",")
+                        if s.strip()
+                    ],
                     "is_active": t.is_active,
                     "last_used_at": t.last_used_at.isoformat() if t.last_used_at else None,
                     "created_at": t.created_at.isoformat() if t.created_at else None,
@@ -58,15 +62,17 @@ def setup_api_token_routes() -> APIRouter:
         token_id = str(uuid.uuid4())[:8]
 
         with get_db_session() as db:
-            db.add(ApiToken(
-                id=token_id,
-                owner=owner,
-                name=name,
-                token_hash=token_hash,
-                token_prefix=raw_token[:8],
-                scopes=DEFAULT_SCOPES,
-                is_active=True,
-            ))
+            db.add(
+                ApiToken(
+                    id=token_id,
+                    owner=owner,
+                    name=name,
+                    token_hash=token_hash,
+                    token_prefix=raw_token[:8],
+                    scopes=DEFAULT_SCOPES,
+                    is_active=True,
+                )
+            )
         _invalidate_cache(request)
 
         return {

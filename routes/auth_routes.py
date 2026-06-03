@@ -198,6 +198,7 @@ def setup_auth_routes(auth_manager: AuthManager) -> APIRouter:
         uri = auth_manager.totp_get_provisioning_uri(user, secret)
         # Generate QR code as base64 PNG
         import qrcode, io, base64
+
         qr = qrcode.make(uri, box_size=6, border=2)
         buf = io.BytesIO()
         qr.save(buf, format="PNG")
@@ -291,6 +292,7 @@ def setup_auth_routes(auth_manager: AuthManager) -> APIRouter:
         # access to its sessions, docs, email accounts, tasks, etc.
         try:
             from core.database import Base, SessionLocal
+
             db = SessionLocal()
             try:
                 for mapper in Base.registry.mappers:
@@ -309,19 +311,24 @@ def setup_auth_routes(auth_manager: AuthManager) -> APIRouter:
             finally:
                 db.close()
         except Exception as e:
-            logger.error("Failed to rename owner references %s -> %s: %s", old_username, new_username, e)
+            logger.error(
+                "Failed to rename owner references %s -> %s: %s", old_username, new_username, e
+            )
             raise HTTPException(500, "Failed to rename user data")
 
         # Per-user prefs are JSON-backed, not SQL-backed.
         try:
             from routes.prefs_routes import _load as _load_prefs, _save as _save_prefs
+
             prefs = _load_prefs()
             users = prefs.get("_users") if isinstance(prefs, dict) else None
             if isinstance(users, dict) and old_username in users and new_username not in users:
                 users[new_username] = users.pop(old_username)
                 _save_prefs(prefs)
         except Exception as e:
-            logger.warning("Failed to rename user prefs %s -> %s: %s", old_username, new_username, e)
+            logger.warning(
+                "Failed to rename user prefs %s -> %s: %s", old_username, new_username, e
+            )
 
         ok = auth_manager.rename_user(old_username, new_username, user)
         if not ok:
@@ -442,7 +449,12 @@ def setup_auth_routes(auth_manager: AuthManager) -> APIRouter:
     @router.get("/integrations/presets")
     async def list_presets():
         """List available integration presets."""
-        return {"presets": {k: {kk: vv for kk, vv in v.items() if kk != "api_key"} for k, v in INTEGRATION_PRESETS.items()}}
+        return {
+            "presets": {
+                k: {kk: vv for kk, vv in v.items() if kk != "api_key"}
+                for k, v in INTEGRATION_PRESETS.items()
+            }
+        }
 
     @router.post("/integrations")
     async def create_integration(request: Request):
@@ -498,6 +510,7 @@ def setup_auth_routes(auth_manager: AuthManager) -> APIRouter:
         if preset == "ntfy":
             import httpx
             from urllib.parse import urlparse
+
             # Strip any path/query the user accidentally pasted in the
             # base URL (e.g. `http://host:8091/odysseus`) — otherwise
             # the topic gets appended after the path and we publish to
@@ -505,7 +518,11 @@ def setup_auth_routes(auth_manager: AuthManager) -> APIRouter:
             # only ever serves from the root.
             raw_base = (integ.get("base_url") or "").strip()
             parsed = urlparse(raw_base)
-            base = f"{parsed.scheme}://{parsed.netloc}" if parsed.scheme and parsed.netloc else raw_base.rstrip("/")
+            base = (
+                f"{parsed.scheme}://{parsed.netloc}"
+                if parsed.scheme and parsed.netloc
+                else raw_base.rstrip("/")
+            )
             settings = _load_settings()
             topic = (settings.get("reminder_ntfy_topic") or "reminders").strip() or "reminders"
             full_url = f"{base}/{topic}"
@@ -538,16 +555,22 @@ def setup_auth_routes(auth_manager: AuthManager) -> APIRouter:
                         "ok": True,
                         "message": (
                             f"Sent to {full_url} — on your ntfy app, "
-                            f"subscribe to topic \"{topic}\" with server "
-                            f"\"{base}\" (or paste the full URL: {full_url})."
+                            f'subscribe to topic "{topic}" with server '
+                            f'"{base}" (or paste the full URL: {full_url}).'
                         ),
                     }
-                return {"ok": False, "message": f"ntfy returned HTTP {r.status_code} from {full_url}: {r.text[:200]}"}
+                return {
+                    "ok": False,
+                    "message": f"ntfy returned HTTP {r.status_code} from {full_url}: {r.text[:200]}",
+                }
             except Exception as e:
                 hint = ""
                 if parsed.hostname not in ("127.0.0.1", "localhost"):
                     hint = " If this is Docker Compose ntfy, set NTFY_BIND to that host/Tailscale IP and NTFY_BASE_URL to the same server URL in .env, then recreate ntfy."
-                return {"ok": False, "message": f"ntfy publish to {full_url} failed: {e}.{hint}"[:500]}
+                return {
+                    "ok": False,
+                    "message": f"ntfy publish to {full_url} failed: {e}.{hint}"[:500],
+                }
 
         # All other presets: GET against a known health endpoint.
         # Fall back to detecting from name if preset is missing.

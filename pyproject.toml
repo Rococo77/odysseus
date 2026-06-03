@@ -18,6 +18,13 @@ select = ["E9", "F63", "F7", "F82"]
 
 [tool.mypy]
 python_version = "3.11"
+# src/ and core/ have no __init__.py, so a module like constants.py is
+# reachable both as `constants` and `src.constants`. Tell mypy to treat the
+# repo root as the package base so each file maps to a single module name and
+# `mypy src core` doesn't abort with "Source file found twice".
+explicit_package_bases = true
+namespace_packages = true
+mypy_path = "."
 # Progressive adoption: lenient defaults now, ratcheted per-module via
 # overrides as typing improves. See docs/plans/03-ci-pipeline.md.
 ignore_missing_imports = true
@@ -25,24 +32,45 @@ check_untyped_defs = false
 warn_unused_ignores = false
 
 # Strict-enforced modules. These pass `mypy --strict` today and are gated as a
-# BLOCKING CI step (typecheck-strict in .github/workflows/ci.yml). Add a module
-# here only after it is strict-clean; the list is the ratchet — it only grows.
-#   src/constants.py
-#   src/prompt_security.py
-#   src/rate_limiter.py
-#   src/action_intents.py
-#   src/text_helpers.py
-#   src/exceptions.py
-#   src/model_context.py
+# BLOCKING CI step (typecheck-strict in .github/workflows/ci.yml, run with
+# --follow-imports=skip so each file is checked in isolation). Add a module here
+# only after it is strict-clean; the list is the ratchet — it only grows. Keep
+# it in sync with the file list in the workflow.
 [[tool.mypy.overrides]]
 module = [
+    "src.action_intents",
+    "src.app_helpers",
     "src.constants",
+    "src.database",
+    "src.exceptions",
+    "src.goal_based_extractor",
+    "src.model_context",
     "src.prompt_security",
     "src.rate_limiter",
-    "src.action_intents",
+    "src.session_actions",
     "src.text_helpers",
-    "src.exceptions",
-    "src.model_context",
+    "src.tool_schemas",
+    "src.tool_security",
+    "core.atomic_io",
+    "core.constants",
+    "core.exceptions",
+    "core.platform_compat",
+    "services.search.query",
+    "services.memory.service",
+    "services.search.analytics",
+    "services.search.cache",
+    "services.search.ranking",
+    "services.youtube.youtube_handler",
+    "src.bg_jobs",
+    "src.integrations",
+    "src.research_utils",
+    "src.tool_parsing",
+    "src.youtube_handler",
+    "src.agent_tools",
+    "src.assistant_log",
+    "src.auth_helpers",
+    "src.chroma_client",
+    "src.model_discovery",
 ]
 disallow_untyped_defs = true
 disallow_incomplete_defs = true

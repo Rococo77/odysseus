@@ -8,7 +8,7 @@ All modules should import from here instead of accessing files directly.
 import json
 import time
 import logging
-from typing import Any
+from typing import Optional, Any
 
 from src.constants import SETTINGS_FILE, FEATURES_FILE
 
@@ -21,10 +21,12 @@ _CACHE_TTL = 2.0
 _settings_cache: tuple[float, dict] | None = None
 _features_cache: tuple[float, dict] | None = None
 
+
 def _invalidate_caches():
     global _settings_cache, _features_cache
     _settings_cache = None
     _features_cache = None
+
 
 # ── Default values ──
 
@@ -94,7 +96,7 @@ DEFAULT_SETTINGS = {
     # library can grow beyond this; cleanup/retirement is an explicit review flow.
     "skill_max_injected": 3,
     # Reminders
-    "reminder_channel": "browser",   # "browser" | "email" | "ntfy"
+    "reminder_channel": "browser",  # "browser" | "email" | "ntfy"
     "reminder_llm_synthesis": False,
     "reminder_ntfy_topic": "Reminders",
     "reminder_email_to": "",
@@ -134,6 +136,7 @@ DEFAULT_FEATURES = {
 
 # ── Settings (data/settings.json) ──
 
+
 def load_settings() -> dict:
     """Load settings merged with defaults. Always returns a complete dict."""
     global _settings_cache
@@ -153,11 +156,12 @@ def load_settings() -> dict:
 def save_settings(settings: dict):
     """Persist settings to disk (atomic; see core.atomic_io)."""
     from core.atomic_io import atomic_write_json
+
     atomic_write_json(SETTINGS_FILE, settings, indent=2)
     _invalidate_caches()
 
 
-def get_setting(key: str, default: Any = None) -> Any:
+def get_setting(key: str, default: Optional[Any] = None) -> Any:
     """Read a single setting value."""
     return load_settings().get(key, default)
 
@@ -167,18 +171,27 @@ def get_setting(key: str, default: Any = None) -> Any:
 # model + image-generation model. The owner argument is the authed username
 # resolved by FastAPI deps; an empty/None owner falls through to the global.
 _PER_USER_KEYS = {
-    "vision_model", "vision_enabled", "vision_model_fallbacks",
-    "image_model", "image_gen_enabled", "image_quality",
+    "vision_model",
+    "vision_enabled",
+    "vision_model_fallbacks",
+    "image_model",
+    "image_gen_enabled",
+    "image_quality",
     # Default chat endpoint / model — without per-user resolution every new
     # account inherited whatever the most-recent admin picked, which then
     # got injected into the chat composer on first open.
-    "default_endpoint_id", "default_model", "default_model_fallbacks",
-    "utility_endpoint_id", "utility_model", "utility_model_fallbacks",
-    "research_endpoint_id", "research_model",
+    "default_endpoint_id",
+    "default_model",
+    "default_model_fallbacks",
+    "utility_endpoint_id",
+    "utility_model",
+    "utility_model_fallbacks",
+    "research_endpoint_id",
+    "research_model",
 }
 
 
-def get_user_setting(key: str, owner: str = "", default: Any = None) -> Any:
+def get_user_setting(key: str, owner: str = "", default: Optional[Any] = None) -> Any:
     """Resolve `key` from the caller's per-user prefs first, falling back to
     the global setting. Only the small whitelist in `_PER_USER_KEYS` is
     eligible — for any other key this is equivalent to `get_setting(key)`.
@@ -189,6 +202,7 @@ def get_user_setting(key: str, owner: str = "", default: Any = None) -> Any:
     if owner and key in _PER_USER_KEYS:
         try:
             from routes.prefs_routes import _load_for_user
+
             prefs = _load_for_user(owner) or {}
             if key in prefs and prefs[key] not in (None, ""):
                 return prefs[key]
@@ -198,6 +212,7 @@ def get_user_setting(key: str, owner: str = "", default: Any = None) -> Any:
 
 
 # ── Features (data/features.json) ──
+
 
 def load_features() -> dict:
     """Load feature flags merged with defaults."""
@@ -218,5 +233,6 @@ def load_features() -> dict:
 def save_features(features: dict):
     """Persist feature flags to disk (atomic)."""
     from core.atomic_io import atomic_write_json
+
     atomic_write_json(FEATURES_FILE, features, indent=2)
     _invalidate_caches()

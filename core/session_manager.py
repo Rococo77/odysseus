@@ -14,7 +14,12 @@ import logging
 from datetime import datetime, timezone, timedelta
 from typing import Dict, Optional
 
-from .database import Session as DbSession, ChatMessage as DbChatMessage, Document as DbDocument, SessionLocal
+from .database import (
+    Session as DbSession,
+    ChatMessage as DbChatMessage,
+    Document as DbDocument,
+    SessionLocal,
+)
 from .models import Session, ChatMessage
 
 logger = logging.getLogger(__name__)
@@ -40,7 +45,7 @@ class SessionManager:
         session = manager.get_session(session_id)
     """
 
-    def __init__(self, sessions_file: str = None):
+    def __init__(self, sessions_file: Optional[str] = None):
         # sessions_file kept for backward compat, not used
         self.sessions: Dict[str, Session] = {}
         self.load_sessions()
@@ -58,10 +63,16 @@ class SessionManager:
         """
         db = SessionLocal()
         try:
-            db_sessions = db.query(DbSession).filter(
-                DbSession.archived == False,
-                DbSession.message_count > 0,
-            ).order_by(DbSession.last_accessed.desc()).limit(100).all()
+            db_sessions = (
+                db.query(DbSession)
+                .filter(
+                    DbSession.archived == False,
+                    DbSession.message_count > 0,
+                )
+                .order_by(DbSession.last_accessed.desc())
+                .limit(100)
+                .all()
+            )
 
             loaded_count = 0
             for db_session in db_sessions:
@@ -114,29 +125,38 @@ class SessionManager:
         if db_session.messages:
             for db_msg in db_session.messages:
                 meta = json.loads(db_msg.meta_data) if db_msg.meta_data else {}
-                if meta is None: meta = {}
-                meta['_db_id'] = db_msg.id
-                meta.setdefault('timestamp', _message_timestamp_iso(db_msg.timestamp))
-                history.append(ChatMessage(
-                    role=db_msg.role,
-                    content=db_msg.content,
-                    metadata=meta,
-                ))
+                if meta is None:
+                    meta = {}
+                meta["_db_id"] = db_msg.id
+                meta.setdefault("timestamp", _message_timestamp_iso(db_msg.timestamp))
+                history.append(
+                    ChatMessage(
+                        role=db_msg.role,
+                        content=db_msg.content,
+                        metadata=meta,
+                    )
+                )
         else:
-            db_messages = db.query(DbChatMessage).filter(
-                DbChatMessage.session_id == db_session.id
-            ).order_by(DbChatMessage.timestamp).all()
+            db_messages = (
+                db.query(DbChatMessage)
+                .filter(DbChatMessage.session_id == db_session.id)
+                .order_by(DbChatMessage.timestamp)
+                .all()
+            )
 
             for db_msg in db_messages:
                 meta = json.loads(db_msg.meta_data) if db_msg.meta_data else {}
-                if meta is None: meta = {}
-                meta['_db_id'] = db_msg.id
-                meta.setdefault('timestamp', _message_timestamp_iso(db_msg.timestamp))
-                history.append(ChatMessage(
-                    role=db_msg.role,
-                    content=db_msg.content,
-                    metadata=meta,
-                ))
+                if meta is None:
+                    meta = {}
+                meta["_db_id"] = db_msg.id
+                meta.setdefault("timestamp", _message_timestamp_iso(db_msg.timestamp))
+                history.append(
+                    ChatMessage(
+                        role=db_msg.role,
+                        content=db_msg.content,
+                        metadata=meta,
+                    )
+                )
 
         if not history:
             return None
@@ -158,11 +178,11 @@ class SessionManager:
             archived=db_session.archived,
             headers=headers,
             history=history,
-            owner=getattr(db_session, 'owner', None),
-            is_important=getattr(db_session, 'is_important', False) or False,
+            owner=getattr(db_session, "owner", None),
+            is_important=getattr(db_session, "is_important", False) or False,
         )
 
-        session.message_count = getattr(db_session, 'message_count', len(history))
+        session.message_count = getattr(db_session, "message_count", len(history))
         return session
 
     # ------------------------------------------------------------------
@@ -191,7 +211,7 @@ class SessionManager:
             msg_time = datetime.utcnow()
             if message.metadata is None:
                 message.metadata = {}
-            message.metadata.setdefault('timestamp', _message_timestamp_iso(msg_time))
+            message.metadata.setdefault("timestamp", _message_timestamp_iso(msg_time))
             db_message = DbChatMessage(
                 id=msg_id,
                 session_id=session_id,
@@ -204,7 +224,11 @@ class SessionManager:
 
             db_session = db.query(DbSession).filter(DbSession.id == session_id).first()
             if db_session:
-                db_session.message_count = len(self.sessions.get(session_id, {}).history) if session_id in self.sessions else 0
+                db_session.message_count = (
+                    len(self.sessions.get(session_id, {}).history)
+                    if session_id in self.sessions
+                    else 0
+                )
                 _now = datetime.now(timezone.utc)
                 db_session.last_accessed = _now
                 # Clean "last conversation" timestamp — only bumped here on a
@@ -215,7 +239,7 @@ class SessionManager:
             db.commit()
 
             # Store DB ID on the in-memory message for edit/delete by ID
-            message.metadata['_db_id'] = msg_id
+            message.metadata["_db_id"] = msg_id
 
             logger.debug(f"Persisted message to session {session_id}")
 
@@ -234,9 +258,12 @@ class SessionManager:
 
         db = SessionLocal()
         try:
-            db_messages = db.query(DbChatMessage).filter(
-                DbChatMessage.session_id == session_id
-            ).order_by(DbChatMessage.timestamp).all()
+            db_messages = (
+                db.query(DbChatMessage)
+                .filter(DbChatMessage.session_id == session_id)
+                .order_by(DbChatMessage.timestamp)
+                .all()
+            )
 
             deleted = 0
             for msg in db_messages[keep_count:]:
@@ -411,7 +438,7 @@ class SessionManager:
         endpoint_url: str,
         model: str,
         rag: bool = False,
-        owner: str = None
+        owner: Optional[str] = None,
     ) -> Session:
         """Create a new session and save to database."""
         db = SessionLocal()
@@ -425,7 +452,7 @@ class SessionManager:
                 headers={},
                 owner=owner,
                 created_at=datetime.now(timezone.utc),
-                updated_at=datetime.now(timezone.utc)
+                updated_at=datetime.now(timezone.utc),
             )
             db.add(db_session)
             db.commit()
@@ -555,10 +582,7 @@ class SessionManager:
         """Return sessions for a specific user (or all if username is None)."""
         if username is None:
             return self.sessions
-        return {
-            sid: s for sid, s in self.sessions.items()
-            if s.owner == username
-        }
+        return {sid: s for sid, s in self.sessions.items() if s.owner == username}
 
     def save_sessions(self):
         """No-op for DB compatibility."""
@@ -570,33 +594,37 @@ class SessionManager:
     def cleanup_empty_sessions(self, auto_archive_days: int = 30) -> dict:
         """Clean up empty and old sessions."""
         db = SessionLocal()
-        stats = {'deleted_empty': 0, 'archived_old': 0, 'total_checked': 0}
+        stats = {"deleted_empty": 0, "archived_old": 0, "total_checked": 0}
 
         try:
             all_sessions = db.query(DbSession).all()
             cutoff_date = datetime.now(timezone.utc) - timedelta(days=auto_archive_days)
 
             for db_session in all_sessions:
-                stats['total_checked'] += 1
+                stats["total_checked"] += 1
 
                 # Delete empty sessions
                 if db_session.message_count == 0:
                     if db_session.id in self.sessions:
                         del self.sessions[db_session.id]
                     db.delete(db_session)
-                    stats['deleted_empty'] += 1
+                    stats["deleted_empty"] += 1
 
                 # Archive old sessions
-                elif (not db_session.archived and
-                      db_session.last_accessed and
-                      db_session.last_accessed < cutoff_date and
-                      db_session.message_count > 0 and
-                      not getattr(db_session, 'is_important', False)):
+                elif (
+                    not db_session.archived
+                    and db_session.last_accessed
+                    and db_session.last_accessed < cutoff_date
+                    and db_session.message_count > 0
+                    and not getattr(db_session, "is_important", False)
+                ):
                     db_session.archived = True
-                    stats['archived_old'] += 1
+                    stats["archived_old"] += 1
 
             db.commit()
-            logger.info(f"Cleanup: {stats['deleted_empty']} deleted, {stats['archived_old']} archived")
+            logger.info(
+                f"Cleanup: {stats['deleted_empty']} deleted, {stats['archived_old']} archived"
+            )
 
         except Exception as e:
             logger.error(f"Cleanup error: {e}")

@@ -15,6 +15,7 @@ from tests.test_null_owner_gates import _import_calendar_helpers
 
 # ── _resolve_base_uid ──────────────────────────────────────────────────
 
+
 def test_resolve_base_uid_plain_passthrough():
     cal = _import_calendar_helpers()
     assert cal._resolve_base_uid("evt-123") == "evt-123"
@@ -264,8 +265,8 @@ def test_expand_multi_day_crossing_range_start():
     ev = _make_event(
         uid="evt-weekly-multi",
         summary="Weekend Trip",
-        dtstart=datetime(2026, 5, 29, 18, 0),   # Friday evening
-        dtend=datetime(2026, 6, 1, 12, 0),       # Monday noon
+        dtstart=datetime(2026, 5, 29, 18, 0),  # Friday evening
+        dtend=datetime(2026, 6, 1, 12, 0),  # Monday noon
         rrule="FREQ=WEEKLY",
     )
     # Query the Monday window — the occurrence starts Fri but ends Mon,
@@ -289,7 +290,7 @@ def test_expand_multi_day_fully_before_window():
     ev = _make_event(
         uid="evt-multi",
         dtstart=datetime(2026, 5, 29, 18, 0),
-        dtend=datetime(2026, 6, 1, 0, 0),   # ends at midnight Jun 1
+        dtend=datetime(2026, 6, 1, 0, 0),  # ends at midnight Jun 1
         rrule="FREQ=WEEKLY",
     )
     # Query starting Jun 1 midnight — occ_end <= start, excluded

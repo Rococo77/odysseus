@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 
 _DATA_URL_RE = re.compile(
-    r'^data:image/(?P<fmt>png|jpeg|jpg);base64,(?P<data>.+)$',
+    r"^data:image/(?P<fmt>png|jpeg|jpg);base64,(?P<data>.+)$",
     re.IGNORECASE | re.DOTALL,
 )
 

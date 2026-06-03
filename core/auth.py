@@ -33,11 +33,12 @@ DEFAULT_PRIVILEGES = {
 }
 
 # Admins get everything
-ADMIN_PRIVILEGES = {k: (True if isinstance(v, bool) else (0 if isinstance(v, int) else [])) for k, v in DEFAULT_PRIVILEGES.items()}
+ADMIN_PRIVILEGES = {
+    k: (True if isinstance(v, bool) else (0 if isinstance(v, int) else []))
+    for k, v in DEFAULT_PRIVILEGES.items()
+}
 
-DEFAULT_AUTH_PATH = os.path.join(
-    Path(__file__).parent.parent, "data", "auth.json"
-)
+DEFAULT_AUTH_PATH = os.path.join(Path(__file__).parent.parent, "data", "auth.json")
 TOKEN_TTL = 60 * 60 * 24 * 7  # 7 days
 
 
@@ -200,14 +201,19 @@ class AuthManager:
         # cookie keeps authenticating.
         revoked = 0
         with self._sessions_lock:
-            to_drop = [tok for tok, sess in self._sessions.items()
-                       if (sess or {}).get("username") == username]
+            to_drop = [
+                tok
+                for tok, sess in self._sessions.items()
+                if (sess or {}).get("username") == username
+            ]
             for tok in to_drop:
                 self._sessions.pop(tok, None)
                 revoked += 1
         if revoked:
             self._save_sessions()
-        logger.info(f"Deleted user '{username}' (by {requesting_user}); revoked {revoked} active session(s)")
+        logger.info(
+            f"Deleted user '{username}' (by {requesting_user}); revoked {revoked} active session(s)"
+        )
         return True
 
     def rename_user(self, old_username: str, new_username: str, requesting_user: str) -> bool:
@@ -236,7 +242,10 @@ class AuthManager:
             self._save_sessions()
         logger.info(
             "Renamed user '%s' -> '%s' (by %s); updated %d active session(s)",
-            old_username, new_username, requesting_user, renamed_sessions,
+            old_username,
+            new_username,
+            requesting_user,
+            renamed_sessions,
         )
         return True
 
@@ -245,7 +254,11 @@ class AuthManager:
 
     def list_users(self) -> List[Dict[str, Any]]:
         return [
-            {"username": u, "is_admin": d.get("is_admin", False), "privileges": self.get_privileges(u)}
+            {
+                "username": u,
+                "is_admin": d.get("is_admin", False),
+                "privileges": self.get_privileges(u),
+            }
             for u, d in self.users.items()
         ]
 

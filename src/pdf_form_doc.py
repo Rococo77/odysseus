@@ -29,7 +29,7 @@ _FRONT_MATTER_RE = re.compile(
 # Freeform annotation bullet — mirrors the JS regex in static/js/document.js.
 # Coords are page percentages (0–100); kind/lh are optional for backward compat.
 _ANNOTATION_RE = re.compile(
-    r'^[ \t]*-\s+(?P<value>.*?)\s*<!--\s*annotation\s+id=(?P<id>[\w-]+)\s+page=(?P<page>\d+)\s+x=(?P<x>[\d.]+)\s+y=(?P<y>[\d.]+)\s+w=(?P<w>[\d.]+)\s+h=(?P<h>[\d.]+)(?:\s+kind=(?P<kind>\w+))?(?:\s+lh=(?P<lh>[\d.]+))?\s*-->[ \t]*$',
+    r"^[ \t]*-\s+(?P<value>.*?)\s*<!--\s*annotation\s+id=(?P<id>[\w-]+)\s+page=(?P<page>\d+)\s+x=(?P<x>[\d.]+)\s+y=(?P<y>[\d.]+)\s+w=(?P<w>[\d.]+)\s+h=(?P<h>[\d.]+)(?:\s+kind=(?P<kind>\w+))?(?:\s+lh=(?P<lh>[\d.]+))?\s*-->[ \t]*$",
     re.MULTILINE,
 )
 
@@ -71,28 +71,29 @@ def parse_markdown_annotations(content: str) -> list[dict]:
         try:
             raw = m.group("value")
             value = "" if raw == "_(empty)_" else _unescape_annotation_value(raw)
-            out.append({
-                "id": m.group("id"),
-                "page": int(m.group("page")),
-                "x": float(m.group("x")),
-                "y": float(m.group("y")),
-                "w": float(m.group("w")),
-                "h": float(m.group("h")),
-                "kind": m.group("kind") or "text",
-                "line_height": float(m.group("lh")) if m.group("lh") else 1.3,
-                "value": value,
-            })
+            out.append(
+                {
+                    "id": m.group("id"),
+                    "page": int(m.group("page")),
+                    "x": float(m.group("x")),
+                    "y": float(m.group("y")),
+                    "w": float(m.group("w")),
+                    "h": float(m.group("h")),
+                    "kind": m.group("kind") or "text",
+                    "line_height": float(m.group("lh")) if m.group("lh") else 1.3,
+                    "value": value,
+                }
+            )
         except (ValueError, TypeError) as e:
             logger.warning(f"Skipping malformed annotation bullet near offset {m.start()}: {e}")
             continue
     return out
 
+
 # Plain-PDF marker: same shape as the form-source marker but emitted for any
 # imported PDF (no AcroForm fields). Lets the existing render-pages /
 # render-pdf / page-png endpoints serve a viewer for non-form PDFs too.
-_PLAIN_FRONT_MATTER_RE = re.compile(
-    r'<!--\s*pdf_source\s+upload_id="(?P<upload_id>[^"]+)"\s*-->'
-)
+_PLAIN_FRONT_MATTER_RE = re.compile(r'<!--\s*pdf_source\s+upload_id="(?P<upload_id>[^"]+)"\s*-->')
 
 # Bullet line emitted by render_form_as_markdown. The trailing comment is the
 # anchor we rely on to recover the field name even after the user/model edits
@@ -102,7 +103,7 @@ _PLAIN_FRONT_MATTER_RE = re.compile(
 #   - **label** [opts]: value <!-- field=NAME-ENC type=choice -->
 #   - [x] **label** <!-- field=NAME-ENC type=checkbox -->
 _FIELD_BULLET_RE = re.compile(
-    r'^\s*-\s+(?P<body>.*?)\s*<!--\s*field=(?P<name>[A-Za-z0-9_.%-]+)\s+type=(?P<type>\w+)\s*-->\s*$'
+    r"^\s*-\s+(?P<body>.*?)\s*<!--\s*field=(?P<name>[A-Za-z0-9_.%-]+)\s+type=(?P<type>\w+)\s*-->\s*$"
 )
 
 
@@ -125,10 +126,13 @@ def _encode_name(name: str) -> str:
 def _decode_name(enc: str) -> str:
     """Inverse of _encode_name."""
     import urllib.parse
+
     return urllib.parse.unquote(enc or "")
-_TEXT_VALUE_RE = re.compile(r'\*\*[^*]+:\*\*\s*(?P<value>.*)$')
-_CHOICE_VALUE_RE = re.compile(r'\*\*[^*]+\*\*\s*\[[^\]]*\]\s*:\s*(?P<value>.*)$')
-_CHECKBOX_VALUE_RE = re.compile(r'^\s*\[(?P<state>[xX ])\]')
+
+
+_TEXT_VALUE_RE = re.compile(r"\*\*[^*]+:\*\*\s*(?P<value>.*)$")
+_CHOICE_VALUE_RE = re.compile(r"\*\*[^*]+\*\*\s*\[[^\]]*\]\s*:\s*(?P<value>.*)$")
+_CHECKBOX_VALUE_RE = re.compile(r"^\s*\[(?P<state>[xX ])\]")
 
 _PLACEHOLDERS = {"_(empty)_", "_(not selected)_", "_(empty)_.", "_(unsigned)_"}
 
@@ -314,20 +318,20 @@ def _format_field_bullet(f: dict[str, Any]) -> str:
     value = _flatten(f.get("value"))
 
     if ftype == "checkbox":
-        body = f'{_checkbox_marker(value)} **{label}**'
+        body = f"{_checkbox_marker(value)} **{label}**"
     elif ftype == "choice":
         opts = f.get("options") or []
         opts_str = " / ".join(opts) if opts else ""
         shown = value if value else "_(not selected)_"
-        body = f'**{label}** [{opts_str}]: {shown}'
+        body = f"**{label}** [{opts_str}]: {shown}"
     elif ftype == "signature":
         shown = value if (value and value.startswith("signature:")) else "_(unsigned)_"
-        body = f'**{label}:** {shown}'
+        body = f"**{label}:** {shown}"
     else:
         shown = value if value else "_(empty)_"
-        body = f'**{label}:** {shown}'
+        body = f"**{label}:** {shown}"
 
-    return f'- {body} <!-- field={name} type={ftype} -->'
+    return f"- {body} <!-- field={name} type={ftype} -->"
 
 
 def render_form_as_markdown(

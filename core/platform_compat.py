@@ -17,14 +17,14 @@ import os
 import shutil
 import subprocess
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 IS_WINDOWS = os.name == "nt"
 IS_POSIX = not IS_WINDOWS
 
 
 # ── File permissions ────────────────────────────────────────────────────────
-def safe_chmod(path, mode: int) -> bool:
+def safe_chmod(path: str, mode: int) -> bool:
     """``os.chmod`` that is a harmless no-op on Windows.
 
     On POSIX we apply the mode — used to lock secret/key files down to 0o600.
@@ -42,7 +42,7 @@ def safe_chmod(path, mode: int) -> bool:
 
 
 # ── Process detach / liveness / teardown ────────────────────────────────────
-def detached_popen_kwargs() -> dict:
+def detached_popen_kwargs() -> Dict[str, Any]:
     """Keyword args for :class:`subprocess.Popen` that fully detach a child so
     it outlives the request/stream that launched it.
 
@@ -52,9 +52,8 @@ def detached_popen_kwargs() -> dict:
     and is detached from any console.
     """
     if IS_WINDOWS:
-        flags = (
-            getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0x00000200)
-            | getattr(subprocess, "DETACHED_PROCESS", 0x00000008)
+        flags = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0x00000200) | getattr(
+            subprocess, "DETACHED_PROCESS", 0x00000008
         )
         return {"creationflags": flags}
     return {"start_new_session": True}
@@ -77,10 +76,8 @@ def pid_alive(pid: Optional[int]) -> bool:
 
         PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
         STILL_ACTIVE = 259
-        kernel32 = ctypes.windll.kernel32
-        handle = kernel32.OpenProcess(
-            PROCESS_QUERY_LIMITED_INFORMATION, False, int(pid)
-        )
+        kernel32 = ctypes.windll.kernel32  # type: ignore[attr-defined]  # Windows-only
+        handle = kernel32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, int(pid))
         if not handle:
             return False
         try:
@@ -185,7 +182,7 @@ def which_tool(name: str) -> Optional[str]:
     return None
 
 
-def run_script_argv(script_path) -> List[str]:
+def run_script_argv(script_path: str) -> List[str]:
     """argv to execute a shell *script file*.
 
     Prefers bash (so existing ``.sh`` wrappers work verbatim, including on

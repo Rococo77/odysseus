@@ -144,7 +144,9 @@ def _truncate_message_to_token_budget(msg: Dict[str, Any], token_budget: int) ->
     return out
 
 
-def trim_for_context(messages: List[Dict], context_length: int, reserve_tokens: int = 512) -> List[Dict]:
+def trim_for_context(
+    messages: List[Dict], context_length: int, reserve_tokens: int = 512
+) -> List[Dict]:
     """Trim system messages to fit within context_length.
 
     For small-context models, progressively strips:
@@ -197,7 +199,10 @@ def trim_for_context(messages: List[Dict], context_length: int, reserve_tokens: 
     if essential_system:
         sys_text = essential_system[0].get("content", "")
         if len(sys_text) > 2000:
-            essential_system[0] = {"role": "system", "content": sys_text[:2000] + "\n[System prompt truncated for context limits]"}
+            essential_system[0] = {
+                "role": "system",
+                "content": sys_text[:2000] + "\n[System prompt truncated for context limits]",
+            }
             trimmed = essential_system + convo_msgs
             if estimate_tokens(trimmed) <= budget:
                 return _sanitize_tool_messages(essential_system + protected_msgs + convo_msgs)
@@ -211,14 +216,16 @@ def trim_for_context(messages: List[Dict], context_length: int, reserve_tokens: 
     current_msg = convo_msgs[-1:] if convo_msgs else []
     prior_convo = convo_msgs[:-1] if convo_msgs else []
     if len(prior_convo) >= PROTECT_RECENT:
-        old_msgs = prior_convo[:-(PROTECT_RECENT - 1)]
-        recent_msgs = prior_convo[-(PROTECT_RECENT - 1):] + current_msg
+        old_msgs = prior_convo[: -(PROTECT_RECENT - 1)]
+        recent_msgs = prior_convo[-(PROTECT_RECENT - 1) :] + current_msg
         while old_msgs and estimate_tokens(essential_system + old_msgs + recent_msgs) > budget:
             old_msgs.pop(0)
         convo_msgs = old_msgs + recent_msgs
     else:
         convo_msgs = prior_convo + current_msg
-        while prior_convo and estimate_tokens(essential_system + prior_convo + current_msg) > budget:
+        while (
+            prior_convo and estimate_tokens(essential_system + prior_convo + current_msg) > budget
+        ):
             prior_convo.pop(0)
         convo_msgs = prior_convo + current_msg
 
@@ -251,9 +258,7 @@ async def maybe_compact(
     if pct < COMPACT_THRESHOLD * 100:
         return messages, context_length, False
 
-    logger.info(
-        f"Context at {pct:.1f}% ({used}/{context_length} tokens) — compacting"
-    )
+    logger.info(f"Context at {pct:.1f}% ({used}/{context_length} tokens) — compacting")
 
     # Split into system preface and conversation
     system_msgs = []
@@ -274,14 +279,12 @@ async def maybe_compact(
 
     # Build the text to summarize
     convo_text = "\n".join(
-        f"{msg['role'].upper()}: {msg.get('content', '')[:2000]}"
-        for msg in older
+        f"{msg['role'].upper()}: {msg.get('content', '')[:2000]}" for msg in older
     )
 
     # Count prior compactions from existing summary messages
     compaction_count = sum(
-        1 for m in system_msgs
-        if "[Conversation summary" in m.get("content", "")
+        1 for m in system_msgs if "[Conversation summary" in m.get("content", "")
     )
 
     # Use utility model if configured, otherwise fall back to session model
@@ -290,9 +293,7 @@ async def maybe_compact(
     compact_model = util_model or model
     compact_headers = util_headers if util_url else headers
 
-    prompt = SELF_SUMMARY_SYSTEM_PROMPT.replace(
-        "{count}", str(len(older))
-    ).replace(
+    prompt = SELF_SUMMARY_SYSTEM_PROMPT.replace("{count}", str(len(older))).replace(
         "{n}", str(compaction_count + 1)
     )
     summary_messages = [
@@ -351,6 +352,7 @@ def _update_session_history(session, split_point: int, summary: str):
     new_history = [summary_msg] + recent_history
     try:
         from core import models as _core_models
+
         manager = getattr(_core_models, "_session_manager", None)
     except Exception:
         manager = None

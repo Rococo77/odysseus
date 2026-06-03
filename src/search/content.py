@@ -88,6 +88,7 @@ def _get_public_url(url: str, *, headers: dict, timeout: int) -> httpx.Response:
                 raise httpx.RequestError(f"Blocked redirect to non-public URL: {current}")
     raise httpx.RequestError("Too many redirects")
 
+
 # PDF extraction (optional dependency)
 try:
     from pdfminer.high_level import extract_text as pdf_extract_text
@@ -174,8 +175,17 @@ def _extract_code_blocks(soup: BeautifulSoup) -> List[str]:
 def _detect_js_frameworks(soup: BeautifulSoup) -> bool:
     """Very naive detection of common JS frameworks."""
     js_indicators = [
-        "react", "angular", "vue", "svelte", "next", "nuxt",
-        "ember", "backbone", "jquery", "polymer", "mithril",
+        "react",
+        "angular",
+        "vue",
+        "svelte",
+        "next",
+        "nuxt",
+        "ember",
+        "backbone",
+        "jquery",
+        "polymer",
+        "mithril",
     ]
     for script in soup.find_all("script"):
         src = script.get("src", "").lower()
@@ -299,7 +309,11 @@ def fetch_webpage_content(url: str, timeout: int = 5, retry_attempt: int = 0) ->
     meta_info = _extract_meta(soup)
     og_image = _extract_og_image(soup)
     js_rendered = _detect_js_frameworks(soup)
-    js_message = "Page appears to be rendered by a JavaScript framework; content may be incomplete." if js_rendered else ""
+    js_message = (
+        "Page appears to be rendered by a JavaScript framework; content may be incomplete."
+        if js_rendered
+        else ""
+    )
 
     # Main textual content (heuristic): prefer semantic / "content"-classed
     # containers to skip nav/footer/boilerplate; tuned for article pages.

@@ -1,10 +1,12 @@
 """Tests for endpoint_resolver — pure functions tested directly to avoid import pollution."""
+
 import re
 from urllib.parse import urlparse
 
 
 # Copy the pure functions to test them without importing the full module.
 # This avoids module cache conflicts with other test files that mock dependencies.
+
 
 def normalize_base(url: str) -> str:
     url = (url or "").strip().rstrip("/")
@@ -21,7 +23,9 @@ def _detect_provider(url: str) -> str:
     parsed = urlparse(url or "")
     host = parsed.hostname or ""
     path = (parsed.path or "").rstrip("/")
-    if host.endswith("ollama.com") or (parsed.port == 11434 and (path == "/api" or path.startswith("/api/"))):
+    if host.endswith("ollama.com") or (
+        parsed.port == 11434 and (path == "/api" or path.startswith("/api/"))
+    ):
         return "ollama"
     if "anthropic.com" in (url or ""):
         return "anthropic"
@@ -73,13 +77,20 @@ class TestNormalizeBase:
         assert normalize_base("https://api.openai.com/v1/models") == "https://api.openai.com/v1"
 
     def test_strips_chat_completions(self):
-        assert normalize_base("https://api.openai.com/v1/chat/completions") == "https://api.openai.com/v1"
+        assert (
+            normalize_base("https://api.openai.com/v1/chat/completions")
+            == "https://api.openai.com/v1"
+        )
 
     def test_strips_completions(self):
-        assert normalize_base("https://api.openai.com/v1/completions") == "https://api.openai.com/v1"
+        assert (
+            normalize_base("https://api.openai.com/v1/completions") == "https://api.openai.com/v1"
+        )
 
     def test_strips_v1_messages(self):
-        assert normalize_base("https://api.anthropic.com/v1/messages") == "https://api.anthropic.com"
+        assert (
+            normalize_base("https://api.anthropic.com/v1/messages") == "https://api.anthropic.com"
+        )
 
     def test_strips_ollama_native_chat(self):
         assert normalize_base("https://ollama.com/api/chat") == "https://ollama.com/api"
@@ -99,16 +110,27 @@ class TestNormalizeBase:
 
 class TestBuildChatUrl:
     def test_openai_style(self):
-        assert build_chat_url("https://api.openai.com/v1") == "https://api.openai.com/v1/chat/completions"
+        assert (
+            build_chat_url("https://api.openai.com/v1")
+            == "https://api.openai.com/v1/chat/completions"
+        )
 
     def test_anthropic_style(self):
-        assert build_chat_url("https://api.anthropic.com") == "https://api.anthropic.com/v1/messages"
+        assert (
+            build_chat_url("https://api.anthropic.com") == "https://api.anthropic.com/v1/messages"
+        )
 
     def test_anthropic_v1_base_does_not_double_v1(self):
-        assert build_chat_url("https://api.anthropic.com/v1") == "https://api.anthropic.com/v1/messages"
+        assert (
+            build_chat_url("https://api.anthropic.com/v1")
+            == "https://api.anthropic.com/v1/messages"
+        )
 
     def test_local_endpoint(self):
-        assert build_chat_url("http://localhost:8000/v1") == "http://localhost:8000/v1/chat/completions"
+        assert (
+            build_chat_url("http://localhost:8000/v1")
+            == "http://localhost:8000/v1/chat/completions"
+        )
 
     def test_ollama_cloud_native_api(self):
         assert build_chat_url("https://ollama.com/api") == "https://ollama.com/api/chat"
@@ -130,10 +152,15 @@ class TestBuildHeaders:
         assert build_headers(None, "https://api.openai.com/v1") == {}
 
     def test_openai_bearer(self):
-        assert build_headers("sk-abc", "https://api.openai.com/v1") == {"Authorization": "Bearer sk-abc"}
+        assert build_headers("sk-abc", "https://api.openai.com/v1") == {
+            "Authorization": "Bearer sk-abc"
+        }
 
     def test_anthropic_headers(self):
-        assert build_headers("sk-ant-abc", "https://api.anthropic.com") == {"x-api-key": "sk-ant-abc", "anthropic-version": "2023-06-01"}
+        assert build_headers("sk-ant-abc", "https://api.anthropic.com") == {
+            "x-api-key": "sk-ant-abc",
+            "anthropic-version": "2023-06-01",
+        }
 
     def test_empty_key(self):
         assert build_headers("", "https://api.openai.com/v1") == {}

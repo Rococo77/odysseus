@@ -48,10 +48,7 @@ def test_validate_gpus_accepts_indexes_only():
 def test_local_tooling_path_export_prepends_interpreter_bin():
     """The cookbook runners must see the venv's bin (where `hf`/`python` live)
     so tmux shells can find them without an activated venv."""
-    assert (
-        _local_tooling_path_export("/opt/venv/bin/python")
-        == 'export PATH="/opt/venv/bin:$PATH"'
-    )
+    assert _local_tooling_path_export("/opt/venv/bin/python") == 'export PATH="/opt/venv/bin:$PATH"'
 
 
 def test_local_tooling_path_export_preserves_spaces_and_expands_path():

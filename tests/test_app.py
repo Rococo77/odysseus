@@ -1,6 +1,7 @@
 """
 Basic tests for odysseus-ui application structure
 """
+
 import pytest
 import sys
 import os
@@ -52,12 +53,14 @@ class TestImports:
     def test_constants_importable(self):
         """Test that constants module is importable"""
         from src.constants import BASE_DIR, STATIC_DIR, SESSIONS_FILE, MEMORY_FILE
+
         assert BASE_DIR is not None
         assert STATIC_DIR is not None
 
     def test_app_helpers_importable(self):
         """Test that app_helpers module is importable"""
         from src.app_helpers import abs_join
+
         assert callable(abs_join)
 
     def test_exceptions_importable(self):
@@ -68,6 +71,7 @@ class TestImports:
             LLMServiceError,
             WebSearchError,
         )
+
         # These should be exception classes
         assert issubclass(SessionNotFoundError, Exception)
 

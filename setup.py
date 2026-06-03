@@ -39,6 +39,7 @@ def init_database():
     os.environ.setdefault("DATABASE_URL", f"sqlite:///{os.path.join(DATA_DIR, 'app.db')}")
 
     from core.database import Base, engine
+
     Base.metadata.create_all(bind=engine)
     print("  [ok] Database initialized")
 
@@ -69,7 +70,9 @@ def create_default_admin():
             json.dump(auth_data, f, indent=2)
         print(f"  [ok] Initial admin user created ({username})")
         print(f"        Temporary password: {password}")
-        print(f"        ** Change it after first login. Set ODYSSEUS_ADMIN_PASSWORD to choose your own. **")
+        print(
+            f"        ** Change it after first login. Set ODYSSEUS_ADMIN_PASSWORD to choose your own. **"
+        )
         return "created"
     except ImportError:
         print("  [warn] bcrypt not installed — skipping admin user creation")
@@ -86,6 +89,7 @@ def create_env():
         return
     if os.path.exists(example_path):
         import shutil
+
         shutil.copy2(example_path, env_path)
         print("  [ok] .env created from .env.example")
         print("        ** Edit .env with your LLM host and API keys **")
@@ -164,11 +168,17 @@ def main():
     elif admin_status == "exists":
         print("Login with your existing admin credentials.\n")
     elif admin_status == "skipped":
-        print("Admin creation did not happen: dependencies are missing.\nRun 'pip install bcrypt' and rerun setup.\n")
+        print(
+            "Admin creation did not happen: dependencies are missing.\nRun 'pip install bcrypt' and rerun setup.\n"
+        )
     elif admin_status == "failed":
-        print("Admin creation did not happen: a system or file error occurred.\nCheck write permissions for the 'data' directory and rerun setup.\n")
+        print(
+            "Admin creation did not happen: a system or file error occurred.\nCheck write permissions for the 'data' directory and rerun setup.\n"
+        )
     else:  # handling "failed" or any unhandled edge case
-        print("Admin creation did not happen: a system or file error occurred.\nCheck write permissions for the 'data' directory and rerun setup.\n")
+        print(
+            "Admin creation did not happen: a system or file error occurred.\nCheck write permissions for the 'data' directory and rerun setup.\n"
+        )
 
 
 if __name__ == "__main__":

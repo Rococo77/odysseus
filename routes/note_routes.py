@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 # Request models
 # ---------------------------------------------------------------------------
 
+
 class NoteCreate(BaseModel):
     title: str = ""
     content: Optional[str] = None
@@ -55,6 +56,7 @@ class NoteUpdate(BaseModel):
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _note_to_dict(note: Note) -> Dict[str, Any]:
     items = None
@@ -95,7 +97,6 @@ def _note_to_dict(note: Note) -> Dict[str, Any]:
     }
 
 
-
 # ---------------------------------------------------------------------------
 # Reminder dispatch — module-level so background tasks (built-in actions)
 # can call it directly without an HTTP roundtrip + auth cookie. The route
@@ -129,6 +130,7 @@ async def dispatch_reminder(
     nothing is "sent" synchronously for it — the channel just routes there.
     """
     from src.settings import load_settings
+
     settings = load_settings()
     channel = settings.get("reminder_channel", "browser")
     llm_on = bool(settings.get("reminder_llm_synthesis", False))
@@ -142,7 +144,10 @@ async def dispatch_reminder(
             import json as _json
             from datetime import datetime as _dt, timezone as _tz, timedelta as _td
             from pathlib import Path as _P
-            _slug = "".join(c if (c.isalnum() or c in "-_.@") else "_" for c in (owner or "default"))
+
+            _slug = "".join(
+                c if (c.isalnum() or c in "-_.@") else "_" for c in (owner or "default")
+            )
             cache_path = _P(f"data/note_pings_{_slug}.json")
             if cache_path.exists():
                 cache = _json.loads(cache_path.read_text(encoding="utf-8"))
@@ -179,19 +184,28 @@ async def dispatch_reminder(
         try:
             from src.endpoint_resolver import resolve_endpoint
             from src.llm_core import llm_call_async
+
             url, model, headers = resolve_endpoint("utility")
             if not url:
                 url, model, headers = resolve_endpoint("default")
             if url and model:
                 raw = await llm_call_async(
-                    url=url, model=model,
+                    url=url,
+                    model=model,
                     messages=[
-                        {"role": "system", "content": "You are a reminder assistant. Write a single short, warm, motivating sentence (max 25 words) reminding the user about the note below. Do not add greetings, preamble, or hashtags. Output only the sentence."},
+                        {
+                            "role": "system",
+                            "content": "You are a reminder assistant. Write a single short, warm, motivating sentence (max 25 words) reminding the user about the note below. Do not add greetings, preamble, or hashtags. Output only the sentence.",
+                        },
                         {"role": "user", "content": f"Title: {title}\n\n{note_body}".strip()},
                     ],
-                    temperature=0.7, max_tokens=200, headers=headers, timeout=30,
+                    temperature=0.7,
+                    max_tokens=200,
+                    headers=headers,
+                    timeout=30,
                 )
                 from src.text_helpers import strip_think as _strip_think
+
                 # prose=True strips untagged "The user wants me to…" chain-of-thought.
                 # prompt_echo=True strips Qwen-style "Thinking Process:" / leaked
                 # prompt prefixes. Both are safe here because this is a
@@ -205,6 +219,7 @@ async def dispatch_reminder(
                 # last surviving line — that's the actual warm sentence.
                 if synthesis:
                     import re as _re
+
                     # Tightened: target ACTUAL self-talk (model narrating what
                     # it'll do) rather than any first-person sentence. The old
                     # pattern killed legit warm sentences like "I'll see you
@@ -245,7 +260,9 @@ async def dispatch_reminder(
                         _re.IGNORECASE,
                     )
                     lines = [ln for ln in synthesis.splitlines() if ln.strip()]
-                    cleaned = [ln for ln in lines if not _reasoning.match(ln) and not _echo.match(ln)]
+                    cleaned = [
+                        ln for ln in lines if not _reasoning.match(ln) and not _echo.match(ln)
+                    ]
                     if cleaned:
                         # The model's actual answer is normally the LAST surviving
                         # line — reasoning leads, answer trails.
@@ -256,10 +273,15 @@ async def dispatch_reminder(
             logger.warning(f"Reminder LLM synthesis failed: {e}")
             synthesis = _SYNTH_FAILED_TAG
         if synthesis:
-            _s = synthesis.strip(); _low = _s.lower()
-            if (not _s or _low.startswith("error:") or _low.startswith("[error")
-                    or "operation failed" in _low
-                    or ("upstream" in _low and "failed" in _low)) and synthesis != _SYNTH_FAILED_TAG:
+            _s = synthesis.strip()
+            _low = _s.lower()
+            if (
+                not _s
+                or _low.startswith("error:")
+                or _low.startswith("[error")
+                or "operation failed" in _low
+                or ("upstream" in _low and "failed" in _low)
+            ) and synthesis != _SYNTH_FAILED_TAG:
                 logger.warning(f"Reminder synthesis looked like an error, replacing: {_s[:120]!r}")
                 synthesis = _SYNTH_FAILED_TAG
 
@@ -271,6 +293,7 @@ async def dispatch_reminder(
             from email.mime.text import MIMEText
             from email.mime.multipart import MIMEMultipart
             from datetime import datetime as _dt
+
             # `reminder_email_account_id` lets the user pick WHICH email
             # account to send reminders from (when they have several
             # configured in Integrations). Falls back to the default
@@ -281,6 +304,7 @@ async def dispatch_reminder(
                 try:
                     from core.database import SessionLocal as _SL, EmailAccount as _EA
                     from sqlalchemy import and_, or_
+
                     db = _SL()
                     try:
                         q = db.query(_EA).filter(_EA.enabled == True)  # noqa: E712
@@ -290,7 +314,11 @@ async def dispatch_reminder(
                             q = q.filter(or_(_EA.owner == owner, and_(unowned, same_mailbox)))
                         for row in q.order_by(_EA.is_default.desc(), _EA.created_at.asc()).all():
                             trial = _get_email_config(account_id=row.id, owner=owner or "")
-                            if trial.get("smtp_host") and trial.get("smtp_user") and trial.get("smtp_password"):
+                            if (
+                                trial.get("smtp_host")
+                                and trial.get("smtp_user")
+                                and trial.get("smtp_password")
+                            ):
                                 cfg = trial
                                 break
                     finally:
@@ -322,14 +350,16 @@ async def dispatch_reminder(
                 email_error = "Missing " + ", ".join(missing)
                 logger.warning(
                     "Reminder email not sent for note_id=%s account=%r: %s",
-                    note_id, cfg.get("account_name"), email_error,
+                    note_id,
+                    cfg.get("account_name"),
+                    email_error,
                 )
             else:
                 msg = MIMEMultipart("alternative")
                 msg["From"] = from_addr
                 msg["To"] = recipient
-                _t = title or 'Note'
-                _t = _t[len('Reminder:'):].strip() if _t.lower().startswith('reminder:') else _t
+                _t = title or "Note"
+                _t = _t[len("Reminder:") :].strip() if _t.lower().startswith("reminder:") else _t
                 msg["Subject"] = f"Reminder (Odysseus): {_t}"
                 msg["Date"] = _dt.utcnow().strftime("%a, %d %b %Y %H:%M:%S +0000")
                 msg["X-Odysseus-Origin"] = "odysseus-ui"
@@ -351,9 +381,11 @@ async def dispatch_reminder(
 
                 def _smtp_send():
                     from routes.email_helpers import _send_smtp_message
+
                     _send_smtp_message(cfg, from_addr, [recipient], msg.as_string())
 
                 import asyncio as _aio
+
                 await _aio.to_thread(_smtp_send)
                 email_sent = True
         except Exception as e:
@@ -366,9 +398,13 @@ async def dispatch_reminder(
         try:
             from src.integrations import load_integrations
             import httpx
+
             intg = next(
-                (i for i in load_integrations()
-                 if i.get("preset") == "ntfy" and i.get("enabled", True) and i.get("base_url")),
+                (
+                    i
+                    for i in load_integrations()
+                    if i.get("preset") == "ntfy" and i.get("enabled", True) and i.get("base_url")
+                ),
                 None,
             )
             if intg:
@@ -396,7 +432,7 @@ async def dispatch_reminder(
     # popups. Lets the user see reminders inside the app even when the
     # primary channel is email/ntfy and the tab is open.
     browser_sent = False
-    local_browser_sent = (not queue_browser and channel == "browser")
+    local_browser_sent = not queue_browser and channel == "browser"
     if queue_browser and _scheduler_ref is not None:
         try:
             _scheduler_ref.add_notification(
@@ -420,15 +456,20 @@ async def dispatch_reminder(
             import json as _json
             from datetime import datetime as _dt, timezone as _tz
             from pathlib import Path as _P
+
             # Per-owner cache so the scanner's prune step on user A's run
             # doesn't drop user B's just-fired entry (review C4).
             _STATE = cache_path
             if _STATE is None:
-                _slug = "".join(c if (c.isalnum() or c in "-_.@") else "_" for c in (owner or "default"))
+                _slug = "".join(
+                    c if (c.isalnum() or c in "-_.@") else "_" for c in (owner or "default")
+                )
                 _STATE = _P(f"data/note_pings_{_slug}.json")
             _STATE.parent.mkdir(parents=True, exist_ok=True)
             try:
-                _cache = cache or (_json.loads(_STATE.read_text(encoding="utf-8")) if _STATE.exists() else {})
+                _cache = cache or (
+                    _json.loads(_STATE.read_text(encoding="utf-8")) if _STATE.exists() else {}
+                )
             except Exception:
                 _cache = {}
             sent_channel = "email" if email_sent else "ntfy" if ntfy_sent else "browser"
@@ -453,6 +494,7 @@ async def dispatch_reminder(
 # ---------------------------------------------------------------------------
 # Router factory
 # ---------------------------------------------------------------------------
+
 
 def setup_note_routes(task_scheduler=None):
     # Expose the scheduler to module-level `dispatch_reminder` so reminders
@@ -490,7 +532,9 @@ def setup_note_routes(task_scheduler=None):
             if archived is True:
                 notes = q.order_by(Note.updated_at.desc()).all()
             else:
-                notes = q.order_by(Note.pinned.desc(), Note.sort_order.asc(), Note.updated_at.desc()).all()
+                notes = q.order_by(
+                    Note.pinned.desc(), Note.sort_order.asc(), Note.updated_at.desc()
+                ).all()
             return {"notes": [_note_to_dict(n) for n in notes]}
         finally:
             db.close()
@@ -684,6 +728,7 @@ def setup_note_routes(task_scheduler=None):
         """
         # Gate against anonymous callers — LLM synthesis can burn tokens.
         from src.auth_helpers import get_current_user as _gcu
+
         if not _gcu(request):
             raise HTTPException(401, "Not authenticated")
         body = await request.json()
@@ -696,7 +741,9 @@ def setup_note_routes(task_scheduler=None):
         # Delegate to the module-level helper so background tasks can reuse
         # the same dispatch without an HTTP roundtrip + auth cookie.
         return await dispatch_reminder(
-            title=title, note_body=note_body, note_id=note_id,
+            title=title,
+            note_body=note_body,
+            note_id=note_id,
             owner=_gcu(request) or "",
             queue_browser=False,
         )
@@ -718,6 +765,7 @@ def setup_note_routes(task_scheduler=None):
         # explicit and gated on AuthManager.is_configured.
         try:
             from core.auth import AuthManager
+
             _allow_null = not AuthManager().is_configured
         except Exception:
             _allow_null = False
