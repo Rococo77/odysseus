@@ -106,7 +106,12 @@ jobs:
             src/integrations.py \
             src/research_utils.py \
             src/tool_parsing.py \
-            src/youtube_handler.py
+            src/youtube_handler.py \
+            src/agent_tools.py \
+            src/assistant_log.py \
+            src/auth_helpers.py \
+            src/chroma_client.py \
+            src/model_discovery.py
 
   typecheck:
     name: Type check (mypy, whole tree)

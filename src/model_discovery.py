@@ -24,7 +24,7 @@ def discover_tailscale_hosts() -> List[str]:
     if _hosts_cache and (now - _hosts_cache_time) < _HOSTS_CACHE_TTL:
         return list(_hosts_cache)
 
-    hosts = []
+    hosts: List[str] = []
     try:
         result = subprocess.run(
             ["tailscale", "status", "--json"], capture_output=True, text=True, timeout=5
@@ -138,7 +138,7 @@ class ModelDiscovery:
             pass
         return None
 
-    def discover_models(self) -> Dict[str, List[Dict[str, Any]]]:
+    def discover_models(self) -> Dict[str, Any]:
         """Discover available models from all reachable hosts."""
         hosts = self._get_hosts()
         items = []

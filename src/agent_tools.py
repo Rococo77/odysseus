@@ -13,6 +13,7 @@ Sub-modules:
 
 import logging
 from collections import namedtuple
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -106,13 +107,13 @@ ToolBlock = namedtuple("ToolBlock", ["tool_type", "content"])
 _mcp_manager = None
 
 
-def set_mcp_manager(manager):
+def set_mcp_manager(manager: Any) -> None:
     """Set the global MCP manager instance."""
     global _mcp_manager
     _mcp_manager = manager
 
 
-def get_mcp_manager():
+def get_mcp_manager() -> Any:
     """Get the global MCP manager instance."""
     return _mcp_manager
 

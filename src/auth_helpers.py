@@ -1,6 +1,6 @@
 """Shared auth helpers used by all route files."""
 
-from typing import Optional
+from typing import Any, Optional
 from fastapi import Request, HTTPException
 
 
@@ -58,7 +58,7 @@ def require_privilege(request: Request, key: str) -> str:
     return user
 
 
-def owner_filter(query, model_cls, user: str, *, include_shared: bool = True):
+def owner_filter(query: Any, model_cls: Any, user: str, *, include_shared: bool = True) -> Any:
     """Filter `query` so only rows owned by `user` (and optionally null-owner
     'shared' rows) come through. No-op when `user` is empty (single-user
     mode). Returns the modified query."""

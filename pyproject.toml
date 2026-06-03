@@ -66,6 +66,11 @@ module = [
     "src.research_utils",
     "src.tool_parsing",
     "src.youtube_handler",
+    "src.agent_tools",
+    "src.assistant_log",
+    "src.auth_helpers",
+    "src.chroma_client",
+    "src.model_discovery",
 ]
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
