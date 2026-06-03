@@ -6,10 +6,11 @@ import uuid
 import logging
 from typing import Dict, Any, Optional
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
+from sqlalchemy.orm import Session as OrmSession
 
-from core.database import SessionLocal, Note
+from core.database import Note, get_db
 from src.auth_helpers import get_current_user
 from sqlalchemy.orm.attributes import flag_modified
 
@@ -515,207 +516,178 @@ def setup_note_routes(task_scheduler=None):
         request: Request,
         archived: Optional[bool] = None,
         label: Optional[str] = None,
+        db: OrmSession = Depends(get_db),
     ):
         user = _owner(request)
-        db = SessionLocal()
-        try:
-            q = db.query(Note)
-            if user is not None:
-                q = q.filter(Note.owner == user)
-            if archived is not None:
-                q = q.filter(Note.archived == archived)
-            else:
-                q = q.filter(Note.archived == False)
-            if label:
-                q = q.filter(Note.label == label)
-            # Archived view: most recently archived first. Active view: pin + manual order.
-            if archived is True:
-                notes = q.order_by(Note.updated_at.desc()).all()
-            else:
-                notes = q.order_by(
-                    Note.pinned.desc(), Note.sort_order.asc(), Note.updated_at.desc()
-                ).all()
-            return {"notes": [_note_to_dict(n) for n in notes]}
-        finally:
-            db.close()
+        q = db.query(Note)
+        if user is not None:
+            q = q.filter(Note.owner == user)
+        if archived is not None:
+            q = q.filter(Note.archived == archived)
+        else:
+            q = q.filter(Note.archived == False)
+        if label:
+            q = q.filter(Note.label == label)
+        # Archived view: most recently archived first. Active view: pin + manual order.
+        if archived is True:
+            notes = q.order_by(Note.updated_at.desc()).all()
+        else:
+            notes = q.order_by(
+                Note.pinned.desc(), Note.sort_order.asc(), Note.updated_at.desc()
+            ).all()
+        return {"notes": [_note_to_dict(n) for n in notes]}
 
     # --- CREATE ---
     @router.post("")
-    def create_note(request: Request, body: NoteCreate):
+    def create_note(request: Request, body: NoteCreate, db: OrmSession = Depends(get_db)):
         user = _owner(request)
-        db = SessionLocal()
-        try:
-            note = Note(
-                id=str(uuid.uuid4()),
-                owner=user,
-                title=body.title,
-                content=body.content,
-                items=json.dumps(body.items) if body.items is not None else None,
-                note_type=body.note_type,
-                color=body.color,
-                label=body.label,
-                pinned=body.pinned,
-                due_date=body.due_date,
-                source=body.source,
-                session_id=body.session_id,
-                image_url=body.image_url,
-                repeat=body.repeat or "none",
-                sort_order=body.sort_order if body.sort_order is not None else 0,
-            )
-            db.add(note)
-            db.commit()
-            db.refresh(note)
-            return _note_to_dict(note)
-        finally:
-            db.close()
+        note = Note(
+            id=str(uuid.uuid4()),
+            owner=user,
+            title=body.title,
+            content=body.content,
+            items=json.dumps(body.items) if body.items is not None else None,
+            note_type=body.note_type,
+            color=body.color,
+            label=body.label,
+            pinned=body.pinned,
+            due_date=body.due_date,
+            source=body.source,
+            session_id=body.session_id,
+            image_url=body.image_url,
+            repeat=body.repeat or "none",
+            sort_order=body.sort_order if body.sort_order is not None else 0,
+        )
+        db.add(note)
+        db.commit()
+        db.refresh(note)
+        return _note_to_dict(note)
 
     # --- GET ONE ---
     @router.get("/{note_id}")
-    def get_note(request: Request, note_id: str):
+    def get_note(request: Request, note_id: str, db: OrmSession = Depends(get_db)):
         user = _owner(request)
-        db = SessionLocal()
-        try:
-            note = db.query(Note).filter(Note.id == note_id).first()
-            if not note:
-                raise HTTPException(404, "Note not found")
-            # SECURITY: strict ownership — previously `note.owner and note.owner != user`
-            # let any user touch a row whose owner field was null/empty.
-            if user is not None and note.owner != user:
-                raise HTTPException(404, "Note not found")
-            return _note_to_dict(note)
-        finally:
-            db.close()
+        note = db.query(Note).filter(Note.id == note_id).first()
+        if not note:
+            raise HTTPException(404, "Note not found")
+        # SECURITY: strict ownership — previously `note.owner and note.owner != user`
+        # let any user touch a row whose owner field was null/empty.
+        if user is not None and note.owner != user:
+            raise HTTPException(404, "Note not found")
+        return _note_to_dict(note)
 
     # --- UPDATE ---
     @router.put("/{note_id}")
-    def update_note(request: Request, note_id: str, body: NoteUpdate):
+    def update_note(
+        request: Request, note_id: str, body: NoteUpdate, db: OrmSession = Depends(get_db)
+    ):
         user = _owner(request)
-        db = SessionLocal()
-        try:
-            note = db.query(Note).filter(Note.id == note_id).first()
-            if not note:
-                raise HTTPException(404, "Note not found")
-            # SECURITY: strict ownership — previously `note.owner and note.owner != user`
-            # let any user touch a row whose owner field was null/empty.
-            if user is not None and note.owner != user:
-                raise HTTPException(404, "Note not found")
+        note = db.query(Note).filter(Note.id == note_id).first()
+        if not note:
+            raise HTTPException(404, "Note not found")
+        # SECURITY: strict ownership — previously `note.owner and note.owner != user`
+        # let any user touch a row whose owner field was null/empty.
+        if user is not None and note.owner != user:
+            raise HTTPException(404, "Note not found")
 
-            if body.title is not None:
-                note.title = body.title
-            if body.content is not None:
-                note.content = body.content
-            if body.items is not None:
-                note.items = json.dumps(body.items)
-                flag_modified(note, "items")
-            if body.note_type is not None:
-                note.note_type = body.note_type
-            if body.color is not None:
-                note.color = body.color
-            if body.label is not None:
-                note.label = body.label
-            if body.pinned is not None:
-                note.pinned = body.pinned
-            if body.archived is not None:
-                note.archived = body.archived
-            if body.due_date is not None:
-                note.due_date = body.due_date
-            if body.image_url is not None:
-                note.image_url = body.image_url
-            if body.repeat is not None:
-                note.repeat = body.repeat
-            if body.sort_order is not None:
-                note.sort_order = body.sort_order
-            if body.agent_session_id is not None:
-                note.agent_session_id = body.agent_session_id
+        if body.title is not None:
+            note.title = body.title
+        if body.content is not None:
+            note.content = body.content
+        if body.items is not None:
+            note.items = json.dumps(body.items)
+            flag_modified(note, "items")
+        if body.note_type is not None:
+            note.note_type = body.note_type
+        if body.color is not None:
+            note.color = body.color
+        if body.label is not None:
+            note.label = body.label
+        if body.pinned is not None:
+            note.pinned = body.pinned
+        if body.archived is not None:
+            note.archived = body.archived
+        if body.due_date is not None:
+            note.due_date = body.due_date
+        if body.image_url is not None:
+            note.image_url = body.image_url
+        if body.repeat is not None:
+            note.repeat = body.repeat
+        if body.sort_order is not None:
+            note.sort_order = body.sort_order
+        if body.agent_session_id is not None:
+            note.agent_session_id = body.agent_session_id
 
-            db.commit()
-            db.refresh(note)
-            return _note_to_dict(note)
-        finally:
-            db.close()
+        db.commit()
+        db.refresh(note)
+        return _note_to_dict(note)
 
     # --- DELETE ---
     @router.delete("/{note_id}")
-    def delete_note(request: Request, note_id: str):
+    def delete_note(request: Request, note_id: str, db: OrmSession = Depends(get_db)):
         user = _owner(request)
-        db = SessionLocal()
-        try:
-            note = db.query(Note).filter(Note.id == note_id).first()
-            if not note:
-                raise HTTPException(404, "Note not found")
-            # SECURITY: strict ownership — previously `note.owner and note.owner != user`
-            # let any user touch a row whose owner field was null/empty.
-            if user is not None and note.owner != user:
-                raise HTTPException(404, "Note not found")
-            db.delete(note)
-            db.commit()
-            return {"ok": True}
-        finally:
-            db.close()
+        note = db.query(Note).filter(Note.id == note_id).first()
+        if not note:
+            raise HTTPException(404, "Note not found")
+        # SECURITY: strict ownership — previously `note.owner and note.owner != user`
+        # let any user touch a row whose owner field was null/empty.
+        if user is not None and note.owner != user:
+            raise HTTPException(404, "Note not found")
+        db.delete(note)
+        db.commit()
+        return {"ok": True}
 
     # --- TOGGLE PIN ---
     @router.post("/{note_id}/pin")
-    def toggle_pin(request: Request, note_id: str):
+    def toggle_pin(request: Request, note_id: str, db: OrmSession = Depends(get_db)):
         user = _owner(request)
-        db = SessionLocal()
-        try:
-            note = db.query(Note).filter(Note.id == note_id).first()
-            if not note:
-                raise HTTPException(404, "Note not found")
-            # SECURITY: strict ownership — previously `note.owner and note.owner != user`
-            # let any user touch a row whose owner field was null/empty.
-            if user is not None and note.owner != user:
-                raise HTTPException(404, "Note not found")
-            note.pinned = not note.pinned
-            db.commit()
-            return {"ok": True, "pinned": note.pinned}
-        finally:
-            db.close()
+        note = db.query(Note).filter(Note.id == note_id).first()
+        if not note:
+            raise HTTPException(404, "Note not found")
+        # SECURITY: strict ownership — previously `note.owner and note.owner != user`
+        # let any user touch a row whose owner field was null/empty.
+        if user is not None and note.owner != user:
+            raise HTTPException(404, "Note not found")
+        note.pinned = not note.pinned
+        db.commit()
+        return {"ok": True, "pinned": note.pinned}
 
     # --- TOGGLE ARCHIVE ---
     @router.post("/{note_id}/archive")
-    def toggle_archive(request: Request, note_id: str):
+    def toggle_archive(request: Request, note_id: str, db: OrmSession = Depends(get_db)):
         user = _owner(request)
-        db = SessionLocal()
-        try:
-            note = db.query(Note).filter(Note.id == note_id).first()
-            if not note:
-                raise HTTPException(404, "Note not found")
-            # SECURITY: strict ownership — previously `note.owner and note.owner != user`
-            # let any user touch a row whose owner field was null/empty.
-            if user is not None and note.owner != user:
-                raise HTTPException(404, "Note not found")
-            note.archived = not note.archived
-            db.commit()
-            return {"ok": True, "archived": note.archived}
-        finally:
-            db.close()
+        note = db.query(Note).filter(Note.id == note_id).first()
+        if not note:
+            raise HTTPException(404, "Note not found")
+        # SECURITY: strict ownership — previously `note.owner and note.owner != user`
+        # let any user touch a row whose owner field was null/empty.
+        if user is not None and note.owner != user:
+            raise HTTPException(404, "Note not found")
+        note.archived = not note.archived
+        db.commit()
+        return {"ok": True, "archived": note.archived}
 
     # --- TOGGLE CHECKLIST ITEM ---
     @router.post("/{note_id}/items/{index}/toggle")
-    def toggle_item(request: Request, note_id: str, index: int):
+    def toggle_item(request: Request, note_id: str, index: int, db: OrmSession = Depends(get_db)):
         user = _owner(request)
-        db = SessionLocal()
-        try:
-            note = db.query(Note).filter(Note.id == note_id).first()
-            if not note:
-                raise HTTPException(404, "Note not found")
-            # SECURITY: strict ownership — previously `note.owner and note.owner != user`
-            # let any user touch a row whose owner field was null/empty.
-            if user is not None and note.owner != user:
-                raise HTTPException(404, "Note not found")
-            if not note.items:
-                raise HTTPException(400, "Note has no checklist items")
-            items = json.loads(note.items)
-            if index < 0 or index >= len(items):
-                raise HTTPException(400, f"Item index {index} out of range")
-            items[index]["done"] = not items[index].get("done", False)
-            note.items = json.dumps(items)
-            flag_modified(note, "items")
-            db.commit()
-            return {"ok": True, "items": items}
-        finally:
-            db.close()
+        note = db.query(Note).filter(Note.id == note_id).first()
+        if not note:
+            raise HTTPException(404, "Note not found")
+        # SECURITY: strict ownership — previously `note.owner and note.owner != user`
+        # let any user touch a row whose owner field was null/empty.
+        if user is not None and note.owner != user:
+            raise HTTPException(404, "Note not found")
+        if not note.items:
+            raise HTTPException(400, "Note has no checklist items")
+        items = json.loads(note.items)
+        if index < 0 or index >= len(items):
+            raise HTTPException(400, f"Item index {index} out of range")
+        items[index]["done"] = not items[index].get("done", False)
+        note.items = json.dumps(items)
+        flag_modified(note, "items")
+        db.commit()
+        return {"ok": True, "items": items}
 
     # --- FIRE REMINDER ---
     @router.post("/fire-reminder")
@@ -750,7 +722,7 @@ def setup_note_routes(task_scheduler=None):
 
     # --- REORDER NOTES ---
     @router.post("/reorder")
-    async def reorder_notes(request: Request):
+    async def reorder_notes(request: Request, db: OrmSession = Depends(get_db)):
         """Update sort_order for a list of note IDs in the order provided."""
         user = _owner(request)
         body = await request.json()
@@ -769,21 +741,17 @@ def setup_note_routes(task_scheduler=None):
             _allow_null = not AuthManager().is_configured
         except Exception:
             _allow_null = False
-        db = SessionLocal()
-        try:
-            for i, nid in enumerate(ids):
-                q = db.query(Note).filter(Note.id == nid)
-                if user is not None:
-                    if _allow_null:
-                        q = q.filter((Note.owner == user) | (Note.owner == None))  # noqa: E711
-                    else:
-                        q = q.filter(Note.owner == user)
-                note = q.first()
-                if note:
-                    note.sort_order = i
-            db.commit()
-            return {"ok": True, "count": len(ids)}
-        finally:
-            db.close()
+        for i, nid in enumerate(ids):
+            q = db.query(Note).filter(Note.id == nid)
+            if user is not None:
+                if _allow_null:
+                    q = q.filter((Note.owner == user) | (Note.owner == None))  # noqa: E711
+                else:
+                    q = q.filter(Note.owner == user)
+            note = q.first()
+            if note:
+                note.sort_order = i
+        db.commit()
+        return {"ok": True, "count": len(ids)}
 
     return router
