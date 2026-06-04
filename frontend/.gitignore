@@ -14,3 +14,6 @@ src-tauri/gen/
 .env
 *.log
 .DS_Store
+
+# Sidecar binaries (built via scripts/build-sidecar.sh)
+src-tauri/binaries/
