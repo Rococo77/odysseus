@@ -291,10 +291,9 @@ def setup_auth_routes(auth_manager: AuthManager) -> APIRouter:
         # owner-scoped DB rows before changing auth so the account keeps
         # access to its sessions, docs, email accounts, tasks, etc.
         try:
-            from core.database import Base, SessionLocal
+            from core.database import Base, get_db_session
 
-            db = SessionLocal()
-            try:
+            with get_db_session() as db:
                 for mapper in Base.registry.mappers:
                     model = mapper.class_
                     if not hasattr(model, "owner"):
@@ -305,11 +304,6 @@ def setup_auth_routes(auth_manager: AuthManager) -> APIRouter:
                         .update({"owner": new_username}, synchronize_session=False)
                     )
                 db.commit()
-            except Exception:
-                db.rollback()
-                raise
-            finally:
-                db.close()
         except Exception as e:
             logger.error(
                 "Failed to rename owner references %s -> %s: %s", old_username, new_username, e
