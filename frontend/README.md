@@ -83,6 +83,22 @@ npm run tauri:dev    # builds the Rust shell, opens a native window on the dev s
 npm run tauri:build  # → src-tauri/target/release/bundle/
 ```
 
+By default the desktop app expects the backend to be running separately (set
+`NUXT_PUBLIC_API_BASE=http://127.0.0.1:7000` at build time). To ship a fully
+self-contained app that launches the backend itself, build the **sidecar**:
+
+```bash
+pip install pyinstaller          # in the backend's Python env
+bash scripts/build-sidecar.sh    # → src-tauri/binaries/odysseus-server-<triple>
+npm run tauri:build -- -c src-tauri/tauri.sidecar.conf.json
+```
+
+The sidecar overlay (`src-tauri/tauri.sidecar.conf.json`) declares the bundled
+binary as an `externalBin`. In release builds the Rust shell (`src-tauri/src/lib.rs`)
+spawns it on startup (HOST=127.0.0.1, PORT=7000) and Tauri terminates it on exit.
+Set `ODYSSEUS_NO_SIDECAR=1` to skip spawning (e.g. to target a remote API).
+In **dev** no sidecar is spawned — the Nuxt proxy reaches your manually-run backend.
+
 **Web bundle served by FastAPI under `/app`** (note the base URL):
 
 ```bash
@@ -99,9 +115,10 @@ next to the legacy `/tasks`.
 
 - **web** (served by FastAPI): `apiBase = ''` → relative `/api/...`, same-origin.
 - **desktop**: set `NUXT_PUBLIC_API_BASE=http://127.0.0.1:7000` at build time so
-  the webview calls the local backend. This is cross-origin → enable CORS on
-  FastAPI for the Tauri origin (`tauri://localhost` / `http://tauri.localhost`),
-  or bundle the backend as a Tauri **sidecar** (future step).
+  the webview calls the local backend. This is cross-origin → FastAPI already
+  allows the Tauri webview origins (`tauri://localhost`, `http://tauri.localhost`)
+  by default in `app.py` (override via `ALLOWED_ORIGINS`). The backend can be run
+  separately or bundled as a Tauri **sidecar** (see Build above).
 
 ## Migration roadmap (strangler)
 
@@ -111,7 +128,8 @@ next to the legacy `/tasks`.
 3. ⬜ Notes, Calendar, Memory, Gallery — one page at a time
 4. ⬜ Chat (largest; `static/js/chat.js` ~217 kB) — last, once patterns are proven
 5. ⬜ Retire `static/` pages as each is migrated; eventually drop `style.css`
-6. ⬜ Desktop hardening: tighten CSP, backend sidecar, auto-update, native menus
+6. 🟡 Desktop integration: ✅ CORS for Tauri origins, ✅ backend sidecar wiring;
+   ⬜ tighten CSP, auto-update, native menus/tray
 
 Each page is migrated behind `/app/<page>`; once at parity, the legacy route is
 flipped to redirect there, then the old code is deleted.
