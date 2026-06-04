@@ -36,19 +36,22 @@ frontend/
 │   │   ├── tasks.vue            # ⭐ 1st migrated (scoped CSS)
 │   │   ├── sessions.vue         # ⭐ 2nd migrated (scoped CSS)
 │   │   ├── memory.vue           # ⭐ 3rd migrated (Tailwind)
-│   │   └── notes.vue            # ⭐ 4th migrated (Tailwind)
+│   │   ├── notes.vue            # ⭐ 4th migrated (Tailwind)
+│   │   └── gallery.vue          # ⭐ 5th migrated (Tailwind)
 │   ├── components/
 │   │   ├── tasks/               # TaskCard.vue, TaskForm.vue
 │   │   ├── sessions/            # SessionRow.vue, SessionHistory.vue
 │   │   ├── memory/              # MemoryCard.vue
-│   │   └── notes/               # NoteCard.vue, NoteForm.vue
+│   │   ├── notes/               # NoteCard.vue, NoteForm.vue
+│   │   └── gallery/             # ImageCard.vue, ImageDetail.vue
 │   ├── composables/
-│   │   ├── useApi.ts            # typed $fetch wrapper (apiBase + cookies)
+│   │   ├── useApi.ts            # typed $fetch wrapper (apiBase, mediaUrl, cookies)
 │   │   ├── useTasks.ts          # reactive store over /api/tasks
 │   │   ├── useSessions.ts       # reactive store over /api/session(s)
 │   │   ├── useMemory.ts         # reactive store over /api/memory
-│   │   └── useNotes.ts          # reactive store over /api/notes
-│   ├── types/                   # tasks, sessions, memory, notes
+│   │   ├── useNotes.ts          # reactive store over /api/notes
+│   │   └── useGallery.ts        # reactive store over /api/gallery
+│   ├── types/                   # tasks, sessions, memory, notes, gallery
 │   ├── utils/                   # schedule, sessions, memory, notes
 │   └── assets/css/main.css      # Tailwind import + @theme palette
 ├── nuxt.config.ts               # ssr:false, dev proxy → :7000, runtime apiBase
@@ -147,10 +150,13 @@ next to the legacy `/tasks`.
 4. ✅ **Notes** — board with notes & checklists: create/edit, pin, archive,
    delete, item toggle, label filter, search, active/archived views.
    (Reminders/drag-reorder still legacy.)
-5. ⬜ Calendar, Gallery — one page at a time
-6. ⬜ Chat (largest; `static/js/chat.js` ~217 kB) — last, once patterns are proven
-7. ⬜ Retire `static/` pages as each is migrated; eventually drop `style.css`
-8. 🟡 Desktop integration: ✅ CORS for Tauri origins, ✅ backend sidecar wiring;
+5. ✅ **Gallery** — paginated image library: search, tag/model/album/favorites
+   filters, sort, upload, favorite, rename, tag, album assign, rotate, delete.
+   (AI tagging, image editor, bulk zip stay legacy.)
+6. ⬜ Calendar — date-grid + recurrence (high complexity)
+7. ⬜ Chat (largest; `static/js/chat.js` ~217 kB) — last, once patterns are proven
+8. ⬜ Retire `static/` pages as each is migrated; eventually drop `style.css`
+9. 🟡 Desktop integration: ✅ CORS for Tauri origins, ✅ backend sidecar wiring;
    ⬜ tighten CSP, auto-update, native menus/tray
 
 Each page is migrated behind `/app/<page>`; once at parity, the legacy route is
@@ -159,7 +165,7 @@ flipped to redirect there, then the old code is deleted.
 ## What was verified
 
 - `npm run generate` — static build succeeds (`/tasks`, `/sessions`, `/memory`,
-  `/notes` prerendered; Tailwind utilities emitted from the `@theme` palette).
+  `/notes`, `/gallery` prerendered; Tailwind utilities from the `@theme` palette).
 - `npm run typecheck` — passes (TypeScript, no errors).
 - `npm run tauri build --no-bundle` — release Rust shell compiles against
   webkit2gtk and produces a native binary (sidecar spawn code included).

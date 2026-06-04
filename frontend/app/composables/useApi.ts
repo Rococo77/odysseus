@@ -11,5 +11,11 @@ export function useApi() {
     })
   }
 
-  return { request }
+  // Absolute URL for media/static resources (e.g. <img src>). Same-origin on
+  // web (apiBase ''); absolute against the backend in the desktop build.
+  function mediaUrl(path: string): string {
+    return `${apiBase}${path}`
+  }
+
+  return { request, mediaUrl }
 }
