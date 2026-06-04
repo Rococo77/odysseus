@@ -27,13 +27,17 @@ frontend/
 │   ├── app.vue                  # shell (top bar + <NuxtPage/>)
 │   ├── pages/
 │   │   ├── index.vue            # redirects to /tasks
-│   │   └── tasks.vue            # ⭐ pilot page
-│   ├── components/tasks/        # TaskCard.vue, TaskForm.vue
+│   │   ├── tasks.vue            # ⭐ pilot page (1st migrated)
+│   │   └── sessions.vue         # ⭐ 2nd migrated page
+│   ├── components/
+│   │   ├── tasks/               # TaskCard.vue, TaskForm.vue
+│   │   └── sessions/            # SessionRow.vue, SessionHistory.vue
 │   ├── composables/
 │   │   ├── useApi.ts            # typed $fetch wrapper (apiBase + cookies)
-│   │   └── useTasks.ts          # reactive store over /api/tasks
-│   ├── types/tasks.ts           # TS mirror of the Pydantic task models
-│   ├── utils/schedule.ts        # human-readable schedule labels
+│   │   ├── useTasks.ts          # reactive store over /api/tasks
+│   │   └── useSessions.ts       # reactive store over /api/session(s)
+│   ├── types/                   # tasks.ts, sessions.ts (mirror Pydantic models)
+│   ├── utils/                   # schedule.ts, sessions.ts (labels, sort/group)
 │   └── assets/css/main.css      # design tokens (replaces 34k-line style.css)
 ├── nuxt.config.ts               # ssr:false, dev proxy → :7000, runtime apiBase
 ├── src-tauri/                   # Tauri 2 shell (Rust)
@@ -124,7 +128,8 @@ next to the legacy `/tasks`.
 
 1. ✅ **Tasks** — pilot (this PR): list, create/edit, delete, run-now,
    pause/resume, schedule labels.
-2. ⬜ Sessions / chat list (read-heavy, validates streaming patterns)
+2. ✅ **Sessions** — chat list: search, sort, folder grouping, star/rename/
+   archive/delete, read-only history preview (chat streaming stays in legacy)
 3. ⬜ Notes, Calendar, Memory, Gallery — one page at a time
 4. ⬜ Chat (largest; `static/js/chat.js` ~217 kB) — last, once patterns are proven
 5. ⬜ Retire `static/` pages as each is migrated; eventually drop `style.css`
@@ -136,8 +141,9 @@ flipped to redirect there, then the old code is deleted.
 
 ## What was verified
 
-- `npm run generate` — static build succeeds (`/tasks` prerendered).
+- `npm run generate` — static build succeeds (`/tasks`, `/sessions` prerendered).
 - `npm run typecheck` — passes (TypeScript, no errors).
-- `npm run tauri info` — config valid; Nuxt detected; devUrl/frontendDist wired.
-  (Rust compile not run in CI container — missing webkit2gtk system libs.)
+- `npm run tauri build --no-bundle` — release Rust shell compiles against
+  webkit2gtk and produces a native binary (sidecar spawn code included).
+- CORS preflight — Tauri origins allowed with credentials; others rejected.
 ```
