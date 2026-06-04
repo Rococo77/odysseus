@@ -2,6 +2,10 @@
   <div class="app-shell">
     <header class="topbar">
       <span class="brand">Odysseus</span>
+      <nav class="nav">
+        <NuxtLink to="/tasks">Tasks</NuxtLink>
+        <NuxtLink to="/sessions">Sessions</NuxtLink>
+      </nav>
       <span class="badge">desktop · pilot</span>
     </header>
     <main class="content">
@@ -30,7 +34,26 @@
   font-weight: 600;
   letter-spacing: 0.02em;
 }
+.nav {
+  display: flex;
+  gap: 0.25rem;
+}
+.nav a {
+  color: var(--muted);
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+  font-size: 13px;
+}
+.nav a:hover {
+  color: var(--fg);
+  background: var(--panel-2);
+}
+.nav a.router-link-active {
+  color: var(--fg);
+  background: var(--panel-2);
+}
 .badge {
+  margin-left: auto;
   font-size: 11px;
   color: var(--muted);
   border: 1px solid var(--border);
