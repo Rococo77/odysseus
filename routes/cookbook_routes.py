@@ -986,7 +986,7 @@ def setup_cookbook_routes() -> APIRouter:
     def _auto_register_image_endpoint(req: ServeRequest, remote: str | None) -> str | None:
         """Register a diffusion model as an image endpoint so it appears in the model selector."""
         import re
-        from core.database import SessionLocal, ModelEndpoint
+        from core.database import ModelEndpoint, get_db_session
 
         # Parse port from command (--port NNNN), default 8100 for diffusion_server
         port_match = re.search(r"--port\s+(\d+)", req.cmd)
@@ -1005,37 +1005,36 @@ def setup_cookbook_routes() -> APIRouter:
         short_name = req.repo_id.split("/")[-1] if "/" in req.repo_id else req.repo_id
         display_name = f"{short_name} (image)"
 
-        db = SessionLocal()
         try:
-            # Check for existing endpoint with same base_url — update it
-            existing = db.query(ModelEndpoint).filter(ModelEndpoint.base_url == base_url).first()
-            if existing:
-                existing.is_enabled = True
-                existing.model_type = "image"
-                existing.name = display_name
-                db.commit()
-                logger.info(f"Updated existing image endpoint: {base_url}")
-                return existing.id
+            with get_db_session() as db:
+                # Check for existing endpoint with same base_url — update it
+                existing = (
+                    db.query(ModelEndpoint).filter(ModelEndpoint.base_url == base_url).first()
+                )
+                if existing:
+                    existing.is_enabled = True
+                    existing.model_type = "image"
+                    existing.name = display_name
+                    db.commit()
+                    logger.info(f"Updated existing image endpoint: {base_url}")
+                    return existing.id
 
-            ep_id = f"img-{uuid.uuid4().hex[:8]}"
-            ep = ModelEndpoint(
-                id=ep_id,
-                name=display_name,
-                base_url=base_url,
-                api_key=None,
-                is_enabled=True,
-                model_type="image",
-            )
-            db.add(ep)
-            db.commit()
-            logger.info(f"Auto-registered image endpoint: {display_name} @ {base_url}")
-            return ep_id
+                ep_id = f"img-{uuid.uuid4().hex[:8]}"
+                ep = ModelEndpoint(
+                    id=ep_id,
+                    name=display_name,
+                    base_url=base_url,
+                    api_key=None,
+                    is_enabled=True,
+                    model_type="image",
+                )
+                db.add(ep)
+                db.commit()
+                logger.info(f"Auto-registered image endpoint: {display_name} @ {base_url}")
+                return ep_id
         except Exception as e:
             logger.error(f"Failed to auto-register image endpoint: {e}")
-            db.rollback()
             return None
-        finally:
-            db.close()
 
     @router.post("/api/model/serve")
     async def model_serve(request: Request, req: ServeRequest):
