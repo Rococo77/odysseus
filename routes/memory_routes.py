@@ -25,7 +25,7 @@ def _strip_list_prefix(text: str) -> str:
 from services.memory import MemoryManager
 from core.session_manager import SessionManager
 from src.request_models import MemoryAddRequest
-from core.database import SessionLocal
+from core.database import get_db_session
 from src.llm_core import llm_call_async
 from services.memory.memory_extractor import audit_memories
 from src.auth_helpers import get_current_user
@@ -271,8 +271,8 @@ def setup_memory_routes(
         ep_id = settings.get("default_endpoint_id", "")
         default_model = settings.get("default_model", "")
         if ep_id:
-            db = SessionLocal()
-            try:
+            # Scoped session, released before the (long) LLM audit call below.
+            with get_db_session() as db:
                 ep = (
                     db.query(ModelEndpoint)
                     .filter(ModelEndpoint.id == ep_id, ModelEndpoint.is_enabled == True)
@@ -293,8 +293,6 @@ def setup_memory_routes(
                             pass
                     if ep.api_key:
                         headers = {"Authorization": f"Bearer {ep.api_key}"}
-            finally:
-                db.close()
 
         # Fall back to session model if no default configured
         if not endpoint_url and session:
