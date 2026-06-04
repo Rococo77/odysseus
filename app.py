@@ -344,6 +344,21 @@ class _RevalidatingStatic(StaticFiles):
 
 app.mount("/static", _RevalidatingStatic(directory="static"), name="static")
 
+# ========= NEXT-GEN FRONTEND (incremental Nuxt migration) =========
+# Strangler facade: when the Nuxt 4 build (see frontend/) exists, it is served
+# under /app so migrated pages — starting with /app/tasks — run alongside the
+# legacy UI. This stays inert until the output (gitignored) is generated, so a
+# plain checkout is unaffected. Build it for this sub-path with:
+#   cd frontend && NUXT_APP_BASE_URL=/app/ npm run generate
+# (the default '/' base is for the Tauri desktop build).
+_NEXT_DIST = os.path.join(BASE_DIR, "frontend", ".output", "public")
+if os.path.isdir(_NEXT_DIST):
+    app.mount(
+        "/app",
+        _RevalidatingStatic(directory=_NEXT_DIST, html=True),
+        name="frontend-next",
+    )
+
 # ========= GENERATED IMAGES =========
 @app.get("/api/generated-image/{filename}")
 async def serve_generated_image(filename: str, request: Request):
