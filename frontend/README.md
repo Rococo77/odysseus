@@ -16,8 +16,14 @@ only re-implements the UI.
 |--------------|---------------------------------|-----|
 | Desktop shell| **Tauri 2** (Rust + OS webview) | Tiny binaries, native FS/notifs/tray, sidecar-ready |
 | UI framework | **Nuxt 4** (Vue 3), `ssr: false`| SPA/static — works in browser *and* Tauri webview |
+| Styling      | **Tailwind v4** (`@tailwindcss/vite`) | CSS-first `@theme` in `main.css`; palette → utilities |
 | Language     | **TypeScript**                  | Typed API contract mirroring the Pydantic models |
 | Data         | FastAPI `/api/*` (port 7000)    | Untouched backend |
+
+> Styling note: Tasks & Sessions (migrated first) use scoped `<style>`; Memory
+> onward uses **Tailwind utilities** driven by the shared `@theme` palette
+> (`bg-panel`, `text-muted`, `border-border`, …). Earlier pages can be ported
+> to Tailwind incrementally.
 
 ## Layout
 
@@ -27,18 +33,21 @@ frontend/
 │   ├── app.vue                  # shell (top bar + <NuxtPage/>)
 │   ├── pages/
 │   │   ├── index.vue            # redirects to /tasks
-│   │   ├── tasks.vue            # ⭐ pilot page (1st migrated)
-│   │   └── sessions.vue         # ⭐ 2nd migrated page
+│   │   ├── tasks.vue            # ⭐ 1st migrated (scoped CSS)
+│   │   ├── sessions.vue         # ⭐ 2nd migrated (scoped CSS)
+│   │   └── memory.vue           # ⭐ 3rd migrated (Tailwind)
 │   ├── components/
 │   │   ├── tasks/               # TaskCard.vue, TaskForm.vue
-│   │   └── sessions/            # SessionRow.vue, SessionHistory.vue
+│   │   ├── sessions/            # SessionRow.vue, SessionHistory.vue
+│   │   └── memory/              # MemoryCard.vue
 │   ├── composables/
 │   │   ├── useApi.ts            # typed $fetch wrapper (apiBase + cookies)
 │   │   ├── useTasks.ts          # reactive store over /api/tasks
-│   │   └── useSessions.ts       # reactive store over /api/session(s)
-│   ├── types/                   # tasks.ts, sessions.ts (mirror Pydantic models)
-│   ├── utils/                   # schedule.ts, sessions.ts (labels, sort/group)
-│   └── assets/css/main.css      # design tokens (replaces 34k-line style.css)
+│   │   ├── useSessions.ts       # reactive store over /api/session(s)
+│   │   └── useMemory.ts         # reactive store over /api/memory
+│   ├── types/                   # tasks.ts, sessions.ts, memory.ts
+│   ├── utils/                   # schedule.ts, sessions.ts, memory.ts
+│   └── assets/css/main.css      # Tailwind import + @theme palette
 ├── nuxt.config.ts               # ssr:false, dev proxy → :7000, runtime apiBase
 ├── src-tauri/                   # Tauri 2 shell (Rust)
 │   ├── tauri.conf.json          # devUrl :3000, frontendDist ../.output/public
@@ -130,7 +139,9 @@ next to the legacy `/tasks`.
    pause/resume, schedule labels.
 2. ✅ **Sessions** — chat list: search, sort, folder grouping, star/rename/
    archive/delete, read-only history preview (chat streaming stays in legacy)
-3. ⬜ Notes, Calendar, Memory, Gallery — one page at a time
+3. ✅ **Memory** — flat CRUD (list, create, inline edit, pin, delete) with
+   search, category filter, sort. First Tailwind-styled page.
+   ⬜ Notes, Calendar, Gallery — one page at a time
 4. ⬜ Chat (largest; `static/js/chat.js` ~217 kB) — last, once patterns are proven
 5. ⬜ Retire `static/` pages as each is migrated; eventually drop `style.css`
 6. 🟡 Desktop integration: ✅ CORS for Tauri origins, ✅ backend sidecar wiring;
@@ -141,7 +152,8 @@ flipped to redirect there, then the old code is deleted.
 
 ## What was verified
 
-- `npm run generate` — static build succeeds (`/tasks`, `/sessions` prerendered).
+- `npm run generate` — static build succeeds (`/tasks`, `/sessions`, `/memory`
+  prerendered; Tailwind utilities emitted from the `@theme` palette).
 - `npm run typecheck` — passes (TypeScript, no errors).
 - `npm run tauri build --no-bundle` — release Rust shell compiles against
   webkit2gtk and produces a native binary (sidecar spawn code included).

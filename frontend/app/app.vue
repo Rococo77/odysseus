@@ -5,6 +5,7 @@
       <nav class="nav">
         <NuxtLink to="/tasks">Tasks</NuxtLink>
         <NuxtLink to="/sessions">Sessions</NuxtLink>
+        <NuxtLink to="/memory">Memory</NuxtLink>
       </nav>
       <span class="badge">desktop · pilot</span>
     </header>

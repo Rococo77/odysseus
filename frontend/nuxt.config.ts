@@ -1,6 +1,8 @@
 // Nuxt 4 configuration — SPA / static mode so the same build runs both
 // in the browser (incremental "strangler" migration) and inside the Tauri
 // desktop webview (which loads the statically generated files).
+import tailwindcss from '@tailwindcss/vite'
+
 export default defineNuxtConfig({
   compatibilityDate: '2026-06-04',
 
@@ -46,6 +48,8 @@ export default defineNuxtConfig({
   },
 
   vite: {
+    // Tailwind v4 via its official Vite plugin (CSS-first config in main.css).
+    plugins: [tailwindcss()],
     // Tauri expects a fixed port and a clean stderr stream.
     clearScreen: false,
     server: {
