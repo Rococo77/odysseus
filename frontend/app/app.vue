@@ -6,6 +6,7 @@
         <NuxtLink to="/tasks">Tasks</NuxtLink>
         <NuxtLink to="/sessions">Sessions</NuxtLink>
         <NuxtLink to="/memory">Memory</NuxtLink>
+        <NuxtLink to="/notes">Notes</NuxtLink>
       </nav>
       <span class="badge">desktop · pilot</span>
     </header>
