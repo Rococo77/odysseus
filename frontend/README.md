@@ -21,10 +21,10 @@ only re-implements the UI.
 | Markdown     | **marked** + **DOMPurify**      | Chat message rendering (sanitized) |
 | Data         | FastAPI `/api/*` (port 7000)    | Untouched backend |
 
-> Styling note: Tasks & Sessions (migrated first) use scoped `<style>`; Memory
-> onward uses **Tailwind utilities** driven by the shared `@theme` palette
-> (`bg-panel`, `text-muted`, `border-border`, …). Earlier pages can be ported
-> to Tailwind incrementally.
+> Styling note: every page uses **Tailwind utilities** driven by the shared
+> `@theme` palette (`bg-panel`, `text-muted`, `border-border`, …). A couple of
+> tiny scoped rules remain only where a utility is unavailable (e.g. line-clamp
+> in this Tailwind build).
 
 ## Layout
 
@@ -34,13 +34,13 @@ frontend/
 │   ├── app.vue                  # shell (top bar + <NuxtPage/>)
 │   ├── pages/
 │   │   ├── index.vue            # redirects to /tasks
-│   │   ├── tasks.vue            # ⭐ 1st migrated (scoped CSS)
-│   │   ├── sessions.vue         # ⭐ 2nd migrated (scoped CSS)
-│   │   ├── memory.vue           # ⭐ 3rd migrated (Tailwind)
-│   │   ├── notes.vue            # ⭐ 4th migrated (Tailwind)
-│   │   ├── gallery.vue          # ⭐ 5th migrated (Tailwind)
-│   │   ├── calendar.vue         # ⭐ 6th migrated (Tailwind)
-│   │   └── chat.vue             # ⭐ 7th migrated (Tailwind, SSE streaming)
+│   │   ├── tasks.vue            # ⭐ 1st migrated
+│   │   ├── sessions.vue         # ⭐ 2nd migrated
+│   │   ├── memory.vue           # ⭐ 3rd migrated
+│   │   ├── notes.vue            # ⭐ 4th migrated
+│   │   ├── gallery.vue          # ⭐ 5th migrated
+│   │   ├── calendar.vue         # ⭐ 6th migrated
+│   │   └── chat.vue             # ⭐ 7th migrated (SSE streaming)
 │   ├── components/
 │   │   ├── tasks/               # TaskCard.vue, TaskForm.vue
 │   │   ├── sessions/            # SessionRow.vue, SessionHistory.vue

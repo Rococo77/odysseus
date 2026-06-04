@@ -64,40 +64,43 @@ function flash(msg: string) {
 </script>
 
 <template>
-  <section class="sessions" :class="{ split: selected }">
-    <div class="list-col">
-      <div class="head">
-        <h1>Sessions</h1>
-        <div class="head-actions">
-          <button class="ghost" :disabled="loading" @click="fetchSessions">↻ Refresh</button>
-        </div>
+  <section
+    class="mx-auto"
+    :class="selected
+      ? 'grid max-w-[1200px] grid-cols-2 items-start gap-4 h-[calc(100vh-120px)]'
+      : 'max-w-[900px]'"
+  >
+    <div :class="selected ? 'overflow-auto' : ''">
+      <div class="mb-3 flex items-center justify-between">
+        <h1 class="text-2xl font-semibold">Sessions</h1>
+        <button class="rounded-md border border-border px-3 py-1.5 text-sm text-fg hover:border-accent disabled:opacity-50" :disabled="loading" @click="fetchSessions">↻ Refresh</button>
       </div>
 
-      <div class="toolbar">
-        <input v-model="query" class="search" type="search" placeholder="Filter by name…" />
-        <select v-model="sort" class="select">
+      <div class="mb-3.5 flex items-center gap-2">
+        <input v-model="query" type="search" placeholder="Filter by name…" class="flex-1 rounded-md border border-border bg-panel2 px-2.5 py-1.5 text-sm text-fg outline-none focus:border-accent" />
+        <select v-model="sort" class="rounded-md border border-border bg-panel2 px-2 py-1.5 text-sm text-fg outline-none focus:border-accent">
           <option value="active">Last active</option>
           <option value="newest">Newest</option>
           <option value="alpha">A–Z</option>
         </select>
-        <label class="group-toggle">
-          <input v-model="grouped" type="checkbox" />
+        <label class="flex items-center gap-1.5 text-xs text-muted">
+          <input v-model="grouped" type="checkbox" class="accent-accent" />
           <span>Folders</span>
         </label>
       </div>
 
       <Transition name="fade">
-        <p v-if="notice" class="notice">{{ notice }}</p>
+        <p v-if="notice" class="mb-3 rounded-md border border-border bg-panel2 px-3 py-1.5 text-[13px]">{{ notice }}</p>
       </Transition>
 
-      <p v-if="error" class="state error">{{ error }}</p>
-      <p v-else-if="loading && !sessions.length" class="state">Loading…</p>
-      <p v-else-if="!filtered.length" class="state">No sessions{{ query ? ' match your filter' : ' yet' }}.</p>
+      <p v-if="error" class="py-8 text-center text-red">{{ error }}</p>
+      <p v-else-if="loading && !sessions.length" class="py-8 text-center text-muted">Loading…</p>
+      <p v-else-if="!filtered.length" class="py-8 text-center text-muted">No sessions{{ query ? ' match your filter' : ' yet' }}.</p>
 
       <template v-else-if="grouped">
-        <div v-for="g in groups" :key="g.folder ?? '__none'" class="group">
-          <div class="group-head">{{ g.folder || 'Unfiled' }} <span class="count">{{ g.sessions.length }}</span></div>
-          <div class="list">
+        <div v-for="g in groups" :key="g.folder ?? '__none'" class="mb-4">
+          <div class="mb-1.5 ml-0.5 text-xs uppercase tracking-wide text-muted">{{ g.folder || 'Unfiled' }} <span class="opacity-60">{{ g.sessions.length }}</span></div>
+          <div class="flex flex-col gap-1.5">
             <SessionsSessionRow
               v-for="s in g.sessions"
               :key="s.id"
@@ -110,7 +113,7 @@ function flash(msg: string) {
         </div>
       </template>
 
-      <div v-else class="list">
+      <div v-else class="flex flex-col gap-1.5">
         <SessionsSessionRow
           v-for="s in flat"
           :key="s.id"
@@ -122,46 +125,13 @@ function flash(msg: string) {
       </div>
     </div>
 
-    <div v-if="selected" class="detail-col">
+    <div v-if="selected" class="sticky top-0 h-full">
       <SessionsSessionHistory :session-id="selected.id" :title="selected.name" @close="selectedId = null" />
     </div>
   </section>
 </template>
 
 <style scoped>
-.sessions { max-width: 900px; margin: 0 auto; }
-.sessions.split {
-  max-width: 1200px;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 1rem;
-  align-items: start;
-  height: calc(100vh - 120px);
-}
-.sessions.split .list-col { overflow: auto; }
-.sessions.split .detail-col { height: 100%; position: sticky; top: 0; }
-.head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; }
-h1 { margin: 0; font-size: 1.4rem; }
-.head-actions button { border-radius: 6px; padding: 0.4rem 0.8rem; border: 1px solid var(--border); background: transparent; color: var(--fg); }
-.toolbar { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.85rem; }
-.search { flex: 1; }
-.search, .select {
-  background: var(--panel-2);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  color: var(--fg);
-  padding: 0.4rem 0.55rem;
-  font: inherit;
-}
-.search:focus, .select:focus { outline: none; border-color: var(--accent); }
-.group-toggle { display: flex; align-items: center; gap: 0.35rem; font-size: 12px; color: var(--muted); }
-.group { margin-bottom: 1rem; }
-.group-head { font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin: 0 0 0.4rem 0.2rem; }
-.group-head .count { opacity: 0.6; }
-.list { display: flex; flex-direction: column; gap: 0.45rem; }
-.state { color: var(--muted); padding: 2rem 0; text-align: center; }
-.state.error { color: var(--red); }
-.notice { background: var(--panel-2); border: 1px solid var(--border); border-radius: 6px; padding: 0.4rem 0.7rem; margin: 0 0 0.8rem; font-size: 13px; }
 .fade-enter-active, .fade-leave-active { transition: opacity 0.2s; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
 </style>

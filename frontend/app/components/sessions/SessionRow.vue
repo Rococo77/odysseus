@@ -26,95 +26,51 @@ function commitRename() {
   const name = draft.value.trim()
   if (name && name !== props.session.name) emit('rename', props.session.id, name)
 }
+
+const chip = 'rounded-full border border-border px-1.5 py-0.5 text-[11px]'
+const actionBtn = 'rounded-md border border-border bg-panel2 px-1.5 py-0.5 leading-none text-fg hover:border-accent disabled:opacity-40'
 </script>
 
 <template>
-  <div class="row" :class="{ busy, active }">
-    <button class="star" :class="{ on: session.is_important }" title="Star" @click.stop="emit('star', session.id)">
-      {{ session.is_important ? '★' : '☆' }}
-    </button>
+  <div
+    class="flex items-center gap-2 rounded-lg border bg-panel px-2.5 py-2 transition-colors"
+    :class="[active ? 'border-accent' : 'border-border', busy ? 'opacity-55 pointer-events-none' : '']"
+  >
+    <button
+      class="shrink-0 px-0.5 text-[15px] leading-none"
+      :class="session.is_important ? 'text-amber' : 'text-muted hover:text-fg'"
+      title="Star"
+      @click.stop="emit('star', session.id)"
+    >{{ session.is_important ? '★' : '☆' }}</button>
 
-    <div class="main" @click="emit('open', session.id)">
+    <div class="min-w-0 flex-1 cursor-pointer" @click="emit('open', session.id)">
       <input
         v-if="editing"
         ref="inputEl"
         v-model="draft"
-        class="rename"
+        class="w-full rounded-[5px] border border-accent bg-panel2 px-1.5 py-0.5 text-sm font-semibold text-fg outline-none"
         @click.stop
         @keydown.enter.prevent="commitRename"
         @keydown.esc.prevent="editing = false"
         @blur="commitRename"
       />
-      <span v-else class="name" @dblclick.stop="startRename">{{ session.name || '(untitled)' }}</span>
+      <span v-else class="block truncate font-semibold" @dblclick.stop="startRename">{{ session.name || '(untitled)' }}</span>
 
-      <div class="meta">
-        <span v-if="session.folder" class="chip folder">{{ session.folder }}</span>
-        <span class="chip muted">{{ session.model || '—' }}</span>
-        <span class="chip muted">{{ session.message_count }} msg</span>
-        <span class="chip muted">{{ formatDateTime(session.last_message_at || session.updated_at) }}</span>
-        <span v-if="session.has_documents" class="chip" title="Has documents">📎</span>
-        <span v-if="session.has_images" class="chip" title="Has images">🖼</span>
-        <span v-if="session.mode && session.mode !== 'chat'" class="chip mode">{{ session.mode }}</span>
+      <div class="mt-1 flex flex-wrap gap-1.5">
+        <span v-if="session.folder" :class="[chip, 'border-accent text-accent']">{{ session.folder }}</span>
+        <span :class="[chip, 'text-muted']">{{ session.model || '—' }}</span>
+        <span :class="[chip, 'text-muted']">{{ session.message_count }} msg</span>
+        <span :class="[chip, 'text-muted']">{{ formatDateTime(session.last_message_at || session.updated_at) }}</span>
+        <span v-if="session.has_documents" :class="chip" title="Has documents">📎</span>
+        <span v-if="session.has_images" :class="chip" title="Has images">🖼</span>
+        <span v-if="session.mode && session.mode !== 'chat'" :class="[chip, 'border-green text-green uppercase tracking-wide']">{{ session.mode }}</span>
       </div>
     </div>
 
-    <div class="actions">
-      <button title="Rename" :disabled="busy" @click.stop="startRename">✎</button>
-      <button title="Archive" :disabled="busy" @click.stop="emit('archive', session.id)">🗄</button>
-      <button class="danger" title="Delete" :disabled="busy" @click.stop="emit('remove', session.id)">🗑</button>
+    <div class="flex shrink-0 gap-1">
+      <button :class="actionBtn" title="Rename" :disabled="busy" @click.stop="startRename">✎</button>
+      <button :class="actionBtn" title="Archive" :disabled="busy" @click.stop="emit('archive', session.id)">🗄</button>
+      <button :class="[actionBtn, 'hover:border-red']" title="Delete" :disabled="busy" @click.stop="emit('remove', session.id)">🗑</button>
     </div>
   </div>
 </template>
-
-<style scoped>
-.row {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 0.6rem;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--panel);
-  transition: opacity 0.15s, border-color 0.15s;
-}
-.row.active { border-color: var(--accent); }
-.row.busy { opacity: 0.55; pointer-events: none; }
-.star {
-  background: none;
-  border: none;
-  color: var(--muted);
-  font-size: 15px;
-  line-height: 1;
-  padding: 0 0.2rem;
-}
-.star.on { color: var(--amber); }
-.main { flex: 1; min-width: 0; cursor: pointer; }
-.name { font-weight: 600; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.rename {
-  width: 100%;
-  background: var(--panel-2);
-  border: 1px solid var(--accent);
-  border-radius: 5px;
-  color: var(--fg);
-  padding: 0.15rem 0.35rem;
-  font: inherit;
-  font-weight: 600;
-}
-.meta { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.25rem; }
-.chip { font-size: 11px; border: 1px solid var(--border); border-radius: 999px; padding: 0.05rem 0.45rem; }
-.chip.muted { color: var(--muted); }
-.chip.folder { color: var(--accent); border-color: var(--accent); }
-.chip.mode { color: var(--green); border-color: var(--green); text-transform: uppercase; letter-spacing: 0.04em; }
-.actions { display: flex; gap: 0.25rem; flex: none; }
-.actions button {
-  background: var(--panel-2);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  color: var(--fg);
-  padding: 0.2rem 0.4rem;
-  line-height: 1;
-}
-.actions button:hover:not(:disabled) { border-color: var(--accent); }
-.actions .danger:hover:not(:disabled) { border-color: var(--red); }
-.actions button:disabled { opacity: 0.4; cursor: default; }
-</style>

@@ -77,30 +77,30 @@ function flash(msg: string) {
 </script>
 
 <template>
-  <section class="tasks">
-    <div class="head">
-      <h1>Tasks</h1>
-      <div class="head-actions">
-        <button class="ghost" :disabled="loading" @click="fetchTasks">↻ Refresh</button>
-        <button class="primary" @click="openCreate">+ New task</button>
+  <section class="mx-auto max-w-3xl">
+    <div class="mb-4 flex items-center justify-between">
+      <h1 class="text-2xl font-semibold">Tasks</h1>
+      <div class="flex gap-2">
+        <button class="rounded-md border border-border px-3 py-1.5 text-sm text-fg hover:border-accent disabled:opacity-50" :disabled="loading" @click="fetchTasks">↻ Refresh</button>
+        <button class="rounded-md border border-accent bg-accent px-3 py-1.5 text-sm text-white" @click="openCreate">+ New task</button>
       </div>
     </div>
 
     <Transition name="fade">
-      <p v-if="notice" class="notice">{{ notice }}</p>
+      <p v-if="notice" class="mb-3 rounded-md border border-border bg-panel2 px-3 py-1.5 text-[13px]">{{ notice }}</p>
     </Transition>
 
     <Transition name="fade">
-      <div v-if="showForm" class="form-wrap">
+      <div v-if="showForm" class="mb-4">
         <TasksTaskForm :task="editing" :saving="saving" @submit="onSubmit" @cancel="closeForm" />
       </div>
     </Transition>
 
-    <p v-if="error" class="error">{{ error }}</p>
-    <p v-else-if="loading && !tasks.length" class="state">Loading…</p>
-    <p v-else-if="!tasks.length" class="state">No tasks yet. Create your first one.</p>
+    <p v-if="error" class="py-8 text-center text-red">{{ error }}</p>
+    <p v-else-if="loading && !tasks.length" class="py-8 text-center text-muted">Loading…</p>
+    <p v-else-if="!tasks.length" class="py-8 text-center text-muted">No tasks yet. Create your first one.</p>
 
-    <div v-else class="list">
+    <div v-else class="flex flex-col gap-2.5">
       <TasksTaskCard
         v-for="task in tasks"
         :key="task.id"
@@ -117,25 +117,6 @@ function flash(msg: string) {
 </template>
 
 <style scoped>
-.tasks { max-width: 820px; margin: 0 auto; }
-.head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
-h1 { margin: 0; font-size: 1.4rem; }
-.head-actions { display: flex; gap: 0.5rem; }
-.head-actions button { border-radius: 6px; padding: 0.4rem 0.8rem; border: 1px solid var(--border); }
-.ghost { background: transparent; color: var(--fg); }
-.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
-.form-wrap { margin-bottom: 1rem; }
-.list { display: flex; flex-direction: column; gap: 0.6rem; }
-.state, .error { color: var(--muted); padding: 2rem 0; text-align: center; }
-.error { color: var(--red); }
-.notice {
-  background: var(--panel-2);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 0.4rem 0.7rem;
-  margin: 0 0 0.8rem;
-  font-size: 13px;
-}
 .fade-enter-active, .fade-leave-active { transition: opacity 0.2s; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
 </style>
