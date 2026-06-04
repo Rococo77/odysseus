@@ -69,7 +69,7 @@ output.txt.txt
 
 # Reports and temp files
 reports/
-tasks/
+/tasks/
 scripts/compound/*.json
 research_data/
 **/search_analytics.json
