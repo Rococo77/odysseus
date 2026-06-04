@@ -8,6 +8,7 @@
         <NuxtLink to="/memory">Memory</NuxtLink>
         <NuxtLink to="/notes">Notes</NuxtLink>
         <NuxtLink to="/gallery">Gallery</NuxtLink>
+        <NuxtLink to="/calendar">Calendar</NuxtLink>
       </nav>
       <span class="badge">desktop · pilot</span>
     </header>
