@@ -5,13 +5,14 @@ import uuid
 from datetime import datetime, date, timedelta
 from typing import Optional, List, Tuple
 
-from fastapi import APIRouter, HTTPException, Request, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File
 from pydantic import BaseModel
 from sqlalchemy import or_, and_
+from sqlalchemy.orm import Session as OrmSession
 from dateutil.rrule import rrulestr, rruleset
 from dateutil.rrule import DAILY, WEEKLY, MONTHLY, YEARLY
 
-from core.database import SessionLocal, CalendarCal, CalendarEvent
+from core.database import CalendarCal, CalendarEvent, get_db
 from src.auth_helpers import get_current_user
 
 logger = logging.getLogger(__name__)
@@ -639,9 +640,8 @@ def setup_calendar_routes() -> APIRouter:
         return await sync_caldav(owner)
 
     @router.get("/calendars")
-    async def list_calendars(request: Request):
+    async def list_calendars(request: Request, db: OrmSession = Depends(get_db)):
         owner = _require_user(request)
-        db = SessionLocal()
         try:
             _ensure_default_calendar(db, owner)
             cals = db.query(CalendarCal).filter(CalendarCal.owner == owner).all()
@@ -651,11 +651,15 @@ def setup_calendar_routes() -> APIRouter:
         except Exception as e:
             logger.error("Failed to list calendars: %s", e)
             raise HTTPException(500, "Failed to list calendars")
-        finally:
-            db.close()
 
     @router.get("/events")
-    async def list_events(request: Request, start: str, end: str, calendar: str = ""):
+    async def list_events(
+        request: Request,
+        start: str,
+        end: str,
+        calendar: str = "",
+        db: OrmSession = Depends(get_db),
+    ):
         owner = _require_user(request)
         try:
             start_dt = _parse_dt(start)
@@ -666,7 +670,6 @@ def setup_calendar_routes() -> APIRouter:
             # just log it and return no events for this window.
             logger.warning("list_events: unparseable range start=%r end=%r", start, end)
             return {"events": []}
-        db = SessionLocal()
         try:
             # Scope events to calendars owned by the caller.
             # Non-recurring events must overlap the query window; recurring
@@ -716,13 +719,10 @@ def setup_calendar_routes() -> APIRouter:
         except Exception as e:
             logger.error("Failed to list events: %s", e)
             raise HTTPException(500, "Failed to list events")
-        finally:
-            db.close()
 
     @router.post("/events")
-    async def create_event(request: Request, data: EventCreate):
+    async def create_event(request: Request, data: EventCreate, db: OrmSession = Depends(get_db)):
         owner = _require_user(request)
-        db = SessionLocal()
         try:
             cal = None
             if data.calendar_href:
@@ -774,17 +774,16 @@ def setup_calendar_routes() -> APIRouter:
             db.rollback()
             logger.error("Failed to create event: %s", e)
             raise HTTPException(500, "Failed to create event")
-        finally:
-            db.close()
 
     @router.put("/events/{uid}")
-    async def update_event(request: Request, uid: str, data: EventUpdate):
+    async def update_event(
+        request: Request, uid: str, data: EventUpdate, db: OrmSession = Depends(get_db)
+    ):
         owner = _require_user(request)
         try:
             base_uid = _resolve_base_uid(uid)
         except ValueError as e:
             raise HTTPException(400, str(e))
-        db = SessionLocal()
         try:
             ev = _get_or_404_event(db, base_uid, owner)
             if data.summary is not None:
@@ -820,17 +819,14 @@ def setup_calendar_routes() -> APIRouter:
             db.rollback()
             logger.error("Failed to update event: %s", e)
             raise HTTPException(500, "Failed to update event")
-        finally:
-            db.close()
 
     @router.delete("/events/{uid}")
-    async def delete_event(request: Request, uid: str):
+    async def delete_event(request: Request, uid: str, db: OrmSession = Depends(get_db)):
         owner = _require_user(request)
         try:
             base_uid = _resolve_base_uid(uid)
         except ValueError as e:
             raise HTTPException(400, str(e))
-        db = SessionLocal()
         try:
             ev = _get_or_404_event(db, base_uid, owner)
             db.delete(ev)
@@ -842,13 +838,15 @@ def setup_calendar_routes() -> APIRouter:
             db.rollback()
             logger.error("Failed to delete event: %s", e)
             raise HTTPException(500, "Failed to delete event")
-        finally:
-            db.close()
 
     @router.post("/calendars")
-    async def create_calendar(request: Request, name: str = "Imported", color: str = "#5b8abf"):
+    async def create_calendar(
+        request: Request,
+        name: str = "Imported",
+        color: str = "#5b8abf",
+        db: OrmSession = Depends(get_db),
+    ):
         owner = _require_user(request)
-        db = SessionLocal()
         try:
             cal = CalendarCal(
                 id=str(uuid.uuid4()),
@@ -864,15 +862,16 @@ def setup_calendar_routes() -> APIRouter:
             db.rollback()
             logger.error("Failed to create calendar: %s", e)
             raise HTTPException(500, "Failed to create calendar")
-        finally:
-            db.close()
 
     @router.put("/calendars/{cal_id}")
     async def update_calendar(
-        request: Request, cal_id: str, name: Optional[str] = None, color: Optional[str] = None
+        request: Request,
+        cal_id: str,
+        name: Optional[str] = None,
+        color: Optional[str] = None,
+        db: OrmSession = Depends(get_db),
     ):
         owner = _require_user(request)
-        db = SessionLocal()
         try:
             cal = _get_or_404_calendar(db, cal_id, owner)
             if name is not None:
@@ -887,13 +886,10 @@ def setup_calendar_routes() -> APIRouter:
             db.rollback()
             logger.error("Failed to update calendar: %s", e)
             raise HTTPException(500, "Failed to update calendar")
-        finally:
-            db.close()
 
     @router.delete("/calendars/{cal_id}")
-    async def delete_calendar(request: Request, cal_id: str):
+    async def delete_calendar(request: Request, cal_id: str, db: OrmSession = Depends(get_db)):
         owner = _require_user(request)
-        db = SessionLocal()
         try:
             cal = _get_or_404_calendar(db, cal_id, owner)
             db.query(CalendarEvent).filter(CalendarEvent.calendar_id == cal_id).delete()
@@ -905,20 +901,22 @@ def setup_calendar_routes() -> APIRouter:
         except Exception as e:
             db.rollback()
             return {"error": str(e)}
-        finally:
-            db.close()
 
     # 10 MB hard cap on ICS upload. Loading the whole file into memory is
     # unavoidable with python-icalendar, so an unbounded upload would OOM.
     _ICS_MAX_BYTES = 10 * 1024 * 1024
 
     @router.post("/import")
-    async def import_ics(request: Request, file: UploadFile = File(...), calendar_name: str = ""):
+    async def import_ics(
+        request: Request,
+        file: UploadFile = File(...),
+        calendar_name: str = "",
+        db: OrmSession = Depends(get_db),
+    ):
         """Import events from an .ics file (scoped to caller's account)."""
         from icalendar import Calendar as iCal
 
         owner = _require_user(request)
-        db = SessionLocal()
         try:
             content = await file.read()
             if len(content) > _ICS_MAX_BYTES:
@@ -1060,16 +1058,13 @@ def setup_calendar_routes() -> APIRouter:
             db.rollback()
             logger.error("Failed to import ICS: %s", e)
             raise HTTPException(500, "Failed to import ICS")
-        finally:
-            db.close()
 
     @router.get("/export/{cal_id}")
-    async def export_ics(request: Request, cal_id: str):
+    async def export_ics(request: Request, cal_id: str, db: OrmSession = Depends(get_db)):
         """Export a calendar as .ics file."""
         from fastapi.responses import Response
 
         owner = _require_user(request)
-        db = SessionLocal()
         try:
             cal = _get_or_404_calendar(db, cal_id, owner)
             events = (
@@ -1119,8 +1114,6 @@ def setup_calendar_routes() -> APIRouter:
         except Exception as e:
             logger.error("Failed to export ICS: %s", e)
             raise HTTPException(500, "Failed to export ICS")
-        finally:
-            db.close()
 
     @router.post("/quick-parse")
     async def quick_parse(request: Request):
