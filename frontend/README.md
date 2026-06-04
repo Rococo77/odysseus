@@ -131,6 +131,30 @@ FastAPI auto-mounts `.output/public` at `/app` when it exists (guarded mount in
 `app.py`), so the page becomes available at `http://localhost:7000/app/tasks`
 next to the legacy `/tasks`.
 
+## Desktop hardening
+
+Configured in `src-tauri/` (Rust shell):
+
+- **CSP** (`tauri.conf.json` → `app.security`): a strict production `csp`
+  (`default-src 'self'`; `connect-src`/`img-src` limited to the backend at
+  `127.0.0.1:7000` plus Tauri IPC) and a looser `devCsp` that also allows Vite
+  HMR (`'unsafe-eval'`, `ws://localhost:3000`). Tauri injects per-build nonces
+  into the bundled HTML's inline scripts/styles. If a strict-CSP build shows a
+  blank window, relax `script-src`/`connect-src` for the blocked origin.
+- **Native menu + system tray** (`src-tauri/src/lib.rs`): an app menu
+  (Edit/View + "Check for Updates…"), and a tray icon with Show / Check for
+  Updates / Quit; left-clicking the tray reveals the window.
+- **Auto-update** (`tauri-plugin-updater`): wired but **inert until configured**.
+  To enable:
+  1. `npm run tauri signer generate -- -w ~/.tauri/odysseus.key`
+  2. Put the **public** key in `tauri.conf.json` → `plugins.updater.pubkey`
+     and set `plugins.updater.endpoints` to your update manifest URL.
+  3. Build with the private key in the environment so artifacts are signed:
+     `TAURI_SIGNING_PRIVATE_KEY=... TAURI_SIGNING_PRIVATE_KEY_PASSWORD=... npm run tauri:build`
+     (`bundle.createUpdaterArtifacts` is already `true`).
+  Never commit the private key. "Check for Updates…" (menu/tray) downloads,
+  installs and restarts when a newer signed release is found.
+
 ## API base URL resolution
 
 `useApi()` prefixes every call with `runtimeConfig.public.apiBase`:
@@ -164,8 +188,8 @@ next to the legacy `/tasks`.
    toggles, agent tool-call display, token metrics, stop. (Attachments, doc
    streaming, research panels, presets stay legacy.)
 8. ⬜ Retire `static/` pages as each is migrated; eventually drop `style.css`
-9. 🟡 Desktop integration: ✅ CORS for Tauri origins, ✅ backend sidecar wiring;
-   ⬜ tighten CSP, auto-update, native menus/tray
+9. ✅ Desktop integration: CORS for Tauri origins, backend sidecar, strict CSP,
+   native menu + system tray, auto-update wiring (see "Desktop hardening").
 
 **All primary pages are now migrated.** Each runs behind `/app/<page>`; once at
 parity, the legacy route is flipped to redirect there, then the old code is deleted.

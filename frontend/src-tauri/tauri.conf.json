@@ -20,7 +20,33 @@
       }
     ],
     "security": {
-      "csp": null
+      "csp": {
+        "default-src": "'self'",
+        "script-src": "'self'",
+        "style-src": "'self' 'unsafe-inline'",
+        "img-src": "'self' data: blob: http://127.0.0.1:7000 http://localhost:7000",
+        "font-src": "'self'",
+        "connect-src": "'self' ipc: http://ipc.localhost http://127.0.0.1:7000 http://localhost:7000",
+        "object-src": "'none'",
+        "base-uri": "'self'",
+        "frame-ancestors": "'none'"
+      },
+      "devCsp": {
+        "default-src": "'self'",
+        "script-src": "'self' 'unsafe-inline' 'unsafe-eval'",
+        "style-src": "'self' 'unsafe-inline'",
+        "img-src": "'self' data: blob: http://127.0.0.1:7000 http://localhost:7000 http://localhost:3000",
+        "connect-src": "'self' ipc: http://ipc.localhost ws://localhost:3000 http://localhost:3000 http://127.0.0.1:7000 http://localhost:7000",
+        "object-src": "'none'"
+      }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "endpoints": [
+        "https://releases.example.com/odysseus/{{target}}/{{arch}}/{{current_version}}"
+      ],
+      "pubkey": ""
     }
   },
   "bundle": {
@@ -28,6 +54,7 @@
     "targets": "all",
     "icon": [
       "icons/icon.png"
-    ]
+    ],
+    "createUpdaterArtifacts": true
   }
 }
