@@ -10,6 +10,10 @@ const isUser = computed(() => props.message.role === 'user')
 function imgSrc(url: string) {
   return url.startsWith('/') ? mediaUrl(url) : url
 }
+
+function thumb(id: string) {
+  return mediaUrl(`/api/upload/${id}?thumb=1`)
+}
 </script>
 
 <template>
@@ -24,6 +28,14 @@ function imgSrc(url: string) {
       <div class="mb-1 flex items-center gap-2 text-[11px] uppercase tracking-wide text-muted">
         <span>{{ message.role }}</span>
         <span v-if="message.model" class="normal-case">· {{ message.model }}</span>
+      </div>
+
+      <!-- Attachments -->
+      <div v-if="message.attachments?.length" class="mb-2 flex flex-wrap gap-1.5">
+        <template v-for="a in message.attachments" :key="a.id">
+          <img v-if="a.mime?.startsWith('image/')" :src="thumb(a.id)" :alt="a.name" :title="a.name" class="h-16 w-16 rounded border border-border object-cover" />
+          <span v-else class="rounded-md border border-border bg-panel2 px-2 py-1 text-xs text-fg" :title="a.name">📎 {{ a.name }}</span>
+        </template>
       </div>
 
       <!-- Agent tool events -->

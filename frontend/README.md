@@ -185,8 +185,9 @@ Configured in `src-tauri/` (Rust shell):
    (CalDAV sync, import/export, LLM quick-parse stay legacy.)
 7. ✅ **Chat** — SSE streaming over `/api/chat_stream`: session sidebar, new
    chat, markdown rendering (marked + DOMPurify), chat/agent/web/research/bash
-   toggles, agent tool-call display, token metrics, stop. (Attachments, doc
-   streaming, research panels, presets stay legacy.)
+   toggles, **file attachments** (`/api/upload` + thumbnails), **character
+   presets** (`/api/presets`), agent tool-call display, token metrics, stop.
+   (Document streaming and research-progress panels stay legacy.)
 8. ⬜ Retire `static/` pages as each is migrated; eventually drop `style.css`
 9. ✅ Desktop integration: CORS for Tauri origins, backend sidecar, strict CSP,
    native menu + system tray, auto-update wiring (see "Desktop hardening").

@@ -13,6 +13,24 @@ export interface ToolEvent {
   image_url?: string
 }
 
+/** An uploaded file referenced by a message (POST /api/upload item /
+ *  history metadata.attachments item). */
+export interface Attachment {
+  id: string
+  name: string
+  mime: string
+  size?: number
+  width?: number | null
+  height?: number | null
+  is_duplicate?: boolean
+}
+
+/** A selectable character preset (flattened from GET /api/presets). */
+export interface Preset {
+  id: string
+  name: string
+}
+
 /** A message as rendered in the thread (richer than the persisted shape). */
 export interface DisplayMessage {
   role: ChatRole
@@ -22,6 +40,7 @@ export interface DisplayMessage {
   dbId?: string
   model?: string
   tools?: ToolEvent[]
+  attachments?: Attachment[]
 }
 
 /** Token-usage metrics emitted near the end of a stream. */
@@ -40,6 +59,15 @@ export interface SendOptions {
   web?: boolean
   research?: boolean
   bash?: boolean
+  presetId?: string
+  attachments?: Attachment[]
+}
+
+/** Raw GET /api/presets shape: a dict of preset-id → object, plus an array
+ *  of user templates under `user_templates`. */
+export interface PresetsResponse {
+  [key: string]: { name?: string } | Array<{ id: string; name: string }> | undefined
+  user_templates?: Array<{ id: string; name: string }>
 }
 
 /** Default chat endpoint info from GET /api/default-chat. */

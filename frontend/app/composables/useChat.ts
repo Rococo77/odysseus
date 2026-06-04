@@ -1,4 +1,4 @@
-import type { DisplayMessage, SendOptions, ChatMetrics, DefaultChat, ToolEvent } from '~/types/chat'
+import type { DisplayMessage, SendOptions, ChatMetrics, DefaultChat, ToolEvent, Attachment, Preset, PresetsResponse } from '~/types/chat'
 import type { ChatMessage } from '~/types/sessions'
 
 // Chat composable: loads history and drives the SSE stream from
@@ -14,8 +14,31 @@ export function useChat() {
   const streaming = useState<boolean>('chat-streaming', () => false)
   const error = useState<string | null>('chat-error', () => null)
   const metrics = useState<ChatMetrics | null>('chat-metrics', () => null)
+  const presets = useState<Preset[]>('chat-presets', () => [])
 
   let controller: AbortController | null = null
+
+  /** Flatten GET /api/presets (dict + user_templates) into a picker list. */
+  async function fetchPresets() {
+    try {
+      const res = await request<PresetsResponse>('/api/presets')
+      const list: Preset[] = []
+      for (const [key, val] of Object.entries(res)) {
+        if (key === 'user_templates' || !val || Array.isArray(val)) continue
+        list.push({ id: key, name: val.name || key })
+      }
+      for (const t of res.user_templates ?? []) list.push({ id: t.id, name: t.name })
+      presets.value = list
+    } catch { /* presets are optional */ }
+  }
+
+  /** Upload files for use as chat attachments (POST /api/upload). */
+  async function uploadFiles(files: FileList | File[]): Promise<Attachment[]> {
+    const fd = new FormData()
+    for (const f of Array.from(files)) fd.append('files', f, f.name)
+    const res = await request<{ files: Attachment[] }>('/api/upload', { method: 'POST', body: fd })
+    return res.files ?? []
+  }
 
   async function loadHistory(id: string) {
     sessionId.value = id
@@ -27,6 +50,7 @@ export function useChat() {
       content: m.content,
       dbId: m.metadata?._db_id,
       tools: (m.metadata?.tool_events as ToolEvent[] | undefined) ?? undefined,
+      attachments: (m.metadata?.attachments as Attachment[] | undefined) ?? undefined,
     }))
   }
 
@@ -49,7 +73,7 @@ export function useChat() {
     const body = text.trim()
     if (!id || !body || streaming.value) return
 
-    messages.value.push({ role: 'user', content: body })
+    messages.value.push({ role: 'user', content: body, attachments: opts.attachments?.length ? opts.attachments : undefined })
     const assistant = reactive<DisplayMessage>({ role: 'assistant', content: '', streaming: true })
     messages.value.push(assistant)
 
@@ -60,6 +84,8 @@ export function useChat() {
     if (opts.web) fd.set(opts.agent ? 'allow_web_search' : 'use_web', 'true')
     if (opts.research) { fd.set('use_research', 'true'); fd.set('mode', 'chat') }
     if (opts.bash) fd.set('allow_bash', 'true')
+    if (opts.presetId) fd.set('preset_id', opts.presetId)
+    if (opts.attachments?.length) fd.set('attachments', JSON.stringify(opts.attachments.map(a => a.id)))
 
     controller = new AbortController()
     streaming.value = true
@@ -166,5 +192,8 @@ export function useChat() {
     }
   }
 
-  return { messages, sessionId, streaming, error, metrics, loadHistory, newSession, send, stop }
+  return {
+    messages, sessionId, streaming, error, metrics, presets,
+    loadHistory, newSession, send, stop, fetchPresets, uploadFiles,
+  }
 }

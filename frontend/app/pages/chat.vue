@@ -3,13 +3,13 @@ import type { SendOptions } from '~/types/chat'
 
 // Final migrated page (Tailwind). Streaming chat over POST /api/chat_stream
 // with a session sidebar, markdown rendering and agent tool display.
-const { messages, sessionId, streaming, error, metrics, loadHistory, newSession, send, stop } = useChat()
+const { messages, sessionId, streaming, error, metrics, presets, loadHistory, newSession, send, stop, fetchPresets } = useChat()
 const { sessions, fetchSessions } = useSessions()
 
 const loadingHistory = ref(false)
 const threadEl = ref<HTMLElement | null>(null)
 
-onMounted(fetchSessions)
+onMounted(() => { fetchSessions(); fetchPresets() })
 
 async function open(id: string) {
   if (id === sessionId.value) return
@@ -77,7 +77,7 @@ watch(() => messages.value.map(m => m.content.length).join(','), scrollToBottom,
           <span v-if="metrics.response_time"> · {{ metrics.response_time.toFixed(1) }}s</span>
         </p>
 
-        <ChatChatComposer :streaming="streaming" @send="onSend" @stop="stop" />
+        <ChatChatComposer :streaming="streaming" :presets="presets" @send="onSend" @stop="stop" />
       </template>
     </div>
   </section>
