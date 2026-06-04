@@ -31,6 +31,33 @@ export interface Preset {
   name: string
 }
 
+/** A document streamed by the agent (doc_stream_* / doc_update events). */
+export interface StreamDoc {
+  id?: string
+  title?: string
+  language?: string
+  content: string
+  saved?: boolean
+}
+
+/** A web/RAG source citation. */
+export interface Source {
+  url?: string
+  title?: string
+  snippet?: string
+}
+
+/** Live research-mode state aggregated from research_* events. */
+export interface ResearchState {
+  phase?: string
+  round?: number
+  total_sources?: number
+  queries?: number
+  sources?: Source[]
+  findings?: Array<{ heading?: string; content?: string }>
+  done?: boolean
+}
+
 /** A message as rendered in the thread (richer than the persisted shape). */
 export interface DisplayMessage {
   role: ChatRole
@@ -41,6 +68,10 @@ export interface DisplayMessage {
   model?: string
   tools?: ToolEvent[]
   attachments?: Attachment[]
+  doc?: StreamDoc
+  sources?: Source[]
+  memories?: Array<{ text?: string; category?: string }>
+  research?: ResearchState
 }
 
 /** Token-usage metrics emitted near the end of a stream. */

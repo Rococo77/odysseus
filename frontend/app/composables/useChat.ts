@@ -1,4 +1,4 @@
-import type { DisplayMessage, SendOptions, ChatMetrics, DefaultChat, ToolEvent, Attachment, Preset, PresetsResponse } from '~/types/chat'
+import type { DisplayMessage, SendOptions, ChatMetrics, DefaultChat, ToolEvent, Attachment, Preset, PresetsResponse, Source, ResearchState } from '~/types/chat'
 import type { ChatMessage } from '~/types/sessions'
 
 // Chat composable: loads history and drives the SSE stream from
@@ -181,6 +181,47 @@ export function useChat() {
         break
       case 'metrics':
         metrics.value = json.data as ChatMetrics
+        break
+
+      // --- Document streaming ---
+      case 'doc_stream_open':
+        assistant.doc = { title: json.title as string, language: json.language as string, content: '' }
+        break
+      case 'doc_stream_delta':
+        assistant.doc ??= { content: '' }
+        assistant.doc.content += (json.content as string) ?? ''
+        break
+      case 'doc_update':
+        assistant.doc = {
+          ...(assistant.doc ?? { content: '' }),
+          id: json.id as string,
+          title: (json.title as string) ?? assistant.doc?.title,
+          language: (json.language as string) ?? assistant.doc?.language,
+          saved: json.saved as boolean,
+        }
+        break
+
+      // --- Sources / memory ---
+      case 'web_sources':
+      case 'rag_sources':
+        (assistant.sources ??= []).push(...((json.data as Source[]) ?? []))
+        break
+      case 'memories_used':
+        assistant.memories = json.data as Array<{ text?: string; category?: string }>
+        break
+
+      // --- Research mode ---
+      case 'research_progress':
+        assistant.research = { ...assistant.research, ...(json.data as ResearchState) }
+        break
+      case 'research_sources':
+        assistant.research = { ...assistant.research, sources: json.data as Source[] }
+        break
+      case 'research_findings':
+        assistant.research = { ...assistant.research, findings: json.data as ResearchState['findings'] }
+        break
+      case 'research_done':
+        assistant.research = { ...assistant.research, done: true }
         break
     }
   }

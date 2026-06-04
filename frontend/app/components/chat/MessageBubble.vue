@@ -38,6 +38,23 @@ function thumb(id: string) {
         </template>
       </div>
 
+      <!-- Research progress -->
+      <div v-if="message.research" class="mb-2 rounded-md border border-border bg-panel2 p-2 text-xs">
+        <div class="flex flex-wrap items-center gap-1.5 text-muted">
+          <span class="text-accent">Research</span>
+          <span v-if="message.research.phase">· {{ message.research.phase }}</span>
+          <span v-if="message.research.round">· round {{ message.research.round }}</span>
+          <span v-if="message.research.total_sources">· {{ message.research.total_sources }} sources</span>
+          <span v-if="message.research.done" class="text-green">· done</span>
+        </div>
+        <ul v-if="message.research.findings?.length" class="mt-1 list-disc pl-4">
+          <li v-for="(f, i) in message.research.findings" :key="i" class="font-medium text-fg/90">{{ f.heading }}</li>
+        </ul>
+        <div v-if="message.research.sources?.length" class="mt-1 flex flex-col gap-0.5">
+          <a v-for="(s, i) in message.research.sources" :key="i" :href="s.url" target="_blank" rel="noopener" class="truncate text-accent hover:underline">{{ s.title || s.url }}</a>
+        </div>
+      </div>
+
       <!-- Agent tool events -->
       <div v-if="message.tools?.length" class="mb-2 flex flex-col gap-1.5">
         <details v-for="(t, i) in message.tools" :key="i" class="rounded-md border border-border bg-panel2 px-2 py-1 text-xs">
@@ -55,6 +72,34 @@ function thumb(id: string) {
       <div class="md text-sm leading-relaxed text-fg" v-html="html" />
 
       <span v-if="message.streaming" class="ml-0.5 inline-block h-3.5 w-1.5 animate-pulse bg-accent align-middle" />
+
+      <!-- Streamed document -->
+      <details v-if="message.doc" class="mt-2 rounded-md border border-border bg-panel2 text-xs" open>
+        <summary class="cursor-pointer px-2 py-1 text-muted">
+          📄 <span class="text-fg">{{ message.doc.title || 'Document' }}</span>
+          <span v-if="message.doc.language"> · {{ message.doc.language }}</span>
+          <span v-if="message.doc.saved" class="text-green"> · saved</span>
+        </summary>
+        <pre class="max-h-72 overflow-auto whitespace-pre-wrap break-words px-2 py-1 text-[12.5px]">{{ message.doc.content }}</pre>
+      </details>
+
+      <!-- Sources -->
+      <details v-if="message.sources?.length" class="mt-2 rounded-md border border-border bg-panel2 text-xs">
+        <summary class="cursor-pointer px-2 py-1 text-muted">Sources ({{ message.sources.length }})</summary>
+        <ul class="px-2 py-1">
+          <li v-for="(s, i) in message.sources" :key="i" class="truncate">
+            <a :href="s.url" target="_blank" rel="noopener" class="text-accent hover:underline">{{ s.title || s.url }}</a>
+          </li>
+        </ul>
+      </details>
+
+      <!-- Memories used -->
+      <details v-if="message.memories?.length" class="mt-2 rounded-md border border-border bg-panel2 text-xs">
+        <summary class="cursor-pointer px-2 py-1 text-muted">Memories ({{ message.memories.length }})</summary>
+        <ul class="list-disc px-2 py-1 pl-5">
+          <li v-for="(m, i) in message.memories" :key="i"><span class="text-muted">[{{ m.category }}]</span> {{ m.text }}</li>
+        </ul>
+      </details>
     </div>
   </div>
 </template>
