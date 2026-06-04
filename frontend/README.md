@@ -18,6 +18,7 @@ only re-implements the UI.
 | UI framework | **Nuxt 4** (Vue 3), `ssr: false`| SPA/static — works in browser *and* Tauri webview |
 | Styling      | **Tailwind v4** (`@tailwindcss/vite`) | CSS-first `@theme` in `main.css`; palette → utilities |
 | Language     | **TypeScript**                  | Typed API contract mirroring the Pydantic models |
+| Markdown     | **marked** + **DOMPurify**      | Chat message rendering (sanitized) |
 | Data         | FastAPI `/api/*` (port 7000)    | Untouched backend |
 
 > Styling note: Tasks & Sessions (migrated first) use scoped `<style>`; Memory
@@ -38,10 +39,12 @@ frontend/
 │   │   ├── memory.vue           # ⭐ 3rd migrated (Tailwind)
 │   │   ├── notes.vue            # ⭐ 4th migrated (Tailwind)
 │   │   ├── gallery.vue          # ⭐ 5th migrated (Tailwind)
-│   │   └── calendar.vue         # ⭐ 6th migrated (Tailwind)
+│   │   ├── calendar.vue         # ⭐ 6th migrated (Tailwind)
+│   │   └── chat.vue             # ⭐ 7th migrated (Tailwind, SSE streaming)
 │   ├── components/
 │   │   ├── tasks/               # TaskCard.vue, TaskForm.vue
 │   │   ├── sessions/            # SessionRow.vue, SessionHistory.vue
+│   │   ├── chat/                # MessageBubble.vue, ChatComposer.vue
 │   │   ├── memory/              # MemoryCard.vue
 │   │   ├── notes/               # NoteCard.vue, NoteForm.vue
 │   │   ├── gallery/             # ImageCard.vue, ImageDetail.vue
@@ -50,9 +53,9 @@ frontend/
 │   │   ├── useApi.ts            # typed $fetch wrapper (apiBase, mediaUrl, cookies)
 │   │   ├── useTasks.ts · useSessions.ts · useMemory.ts
 │   │   ├── useNotes.ts · useGallery.ts · useCalendar.ts
-│   │   └── (one reactive store per /api/* domain)
-│   ├── types/                   # tasks, sessions, memory, notes, gallery, calendar
-│   ├── utils/                   # schedule, sessions, memory, notes, calendar
+│   │   └── useChat.ts           # SSE stream parser over /api/chat_stream
+│   ├── types/                   # tasks, sessions, memory, notes, gallery, calendar, chat
+│   ├── utils/                   # schedule, sessions, memory, notes, calendar, markdown
 │   └── assets/css/main.css      # Tailwind import + @theme palette
 ├── nuxt.config.ts               # ssr:false, dev proxy → :7000, runtime apiBase
 ├── src-tauri/                   # Tauri 2 shell (Rust)
@@ -144,7 +147,7 @@ next to the legacy `/tasks`.
 1. ✅ **Tasks** — pilot (this PR): list, create/edit, delete, run-now,
    pause/resume, schedule labels.
 2. ✅ **Sessions** — chat list: search, sort, folder grouping, star/rename/
-   archive/delete, read-only history preview (chat streaming stays in legacy)
+   archive/delete, read-only history preview.
 3. ✅ **Memory** — flat CRUD (list, create, inline edit, pin, delete) with
    search, category filter, sort. First Tailwind-styled page.
 4. ✅ **Notes** — board with notes & checklists: create/edit, pin, archive,
@@ -156,18 +159,21 @@ next to the legacy `/tasks`.
 6. ✅ **Calendar** — month grid with per-calendar filter, event create/edit/
    delete (all-day & timed, raw RRULE); backend expands recurring occurrences.
    (CalDAV sync, import/export, LLM quick-parse stay legacy.)
-7. ⬜ Chat (largest; `static/js/chat.js` ~217 kB) — last, once patterns are proven
+7. ✅ **Chat** — SSE streaming over `/api/chat_stream`: session sidebar, new
+   chat, markdown rendering (marked + DOMPurify), chat/agent/web/research/bash
+   toggles, agent tool-call display, token metrics, stop. (Attachments, doc
+   streaming, research panels, presets stay legacy.)
 8. ⬜ Retire `static/` pages as each is migrated; eventually drop `style.css`
 9. 🟡 Desktop integration: ✅ CORS for Tauri origins, ✅ backend sidecar wiring;
    ⬜ tighten CSP, auto-update, native menus/tray
 
-Each page is migrated behind `/app/<page>`; once at parity, the legacy route is
-flipped to redirect there, then the old code is deleted.
+**All primary pages are now migrated.** Each runs behind `/app/<page>`; once at
+parity, the legacy route is flipped to redirect there, then the old code is deleted.
 
 ## What was verified
 
-- `npm run generate` — static build succeeds (Tasks, Sessions, Memory, Notes,
-  Gallery, Calendar prerendered; Tailwind utilities from the `@theme` palette).
+- `npm run generate` — static build succeeds (Chat, Tasks, Sessions, Memory,
+  Notes, Gallery, Calendar prerendered; Tailwind utilities from the `@theme` palette).
 - `npm run typecheck` — passes (TypeScript, no errors).
 - `npm run tauri build --no-bundle` — release Rust shell compiles against
   webkit2gtk and produces a native binary (sidecar spawn code included).

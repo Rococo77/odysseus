@@ -3,6 +3,7 @@
     <header class="topbar">
       <span class="brand">Odysseus</span>
       <nav class="nav">
+        <NuxtLink to="/chat">Chat</NuxtLink>
         <NuxtLink to="/tasks">Tasks</NuxtLink>
         <NuxtLink to="/sessions">Sessions</NuxtLink>
         <NuxtLink to="/memory">Memory</NuxtLink>
