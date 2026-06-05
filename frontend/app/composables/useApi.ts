@@ -11,6 +11,12 @@ export function useApi() {
         ...opts,
       })
     } catch (e) {
+      // Session expired / not logged in → bounce to the login page (but never
+      // for the auth endpoints themselves, which drive the login flow).
+      const status = (e as { statusCode?: number; status?: number })
+      if ((status?.statusCode === 401 || status?.status === 401) && import.meta.client && !path.startsWith('/api/auth/')) {
+        navigateTo('/login')
+      }
       // Surface a clean, user-facing message everywhere (see utils/apiError).
       throw new Error(extractApiError(e))
     }

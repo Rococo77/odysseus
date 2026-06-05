@@ -1,13 +1,17 @@
 <script setup lang="ts">
 // Register global Ctrl/Cmd+1..7 page navigation.
 useShortcuts()
+const route = useRoute()
+const { username, isAdmin, logout } = useAuth()
+
 const isMac = import.meta.client && /Mac|iPhone|iPad/.test(navigator.platform)
 const mod = computed(() => (isMac ? '⌘' : 'Ctrl'))
+const bare = computed(() => route.path === '/login')
 </script>
 
 <template>
   <div class="app-shell">
-    <header class="topbar">
+    <header v-if="!bare" class="topbar">
       <span class="brand">Odysseus</span>
       <nav class="nav">
         <NuxtLink
@@ -16,10 +20,15 @@ const mod = computed(() => (isMac ? '⌘' : 'Ctrl'))
           :to="item.to"
           :title="`${item.label} (${mod}+${i + 1})`"
         >{{ item.label }}</NuxtLink>
+        <NuxtLink to="/settings" title="Settings">Settings</NuxtLink>
+        <NuxtLink v-if="isAdmin" to="/admin" title="Admin">Admin</NuxtLink>
       </nav>
-      <span class="badge">desktop · pilot</span>
+      <div class="user">
+        <span v-if="username" class="who">{{ username }}</span>
+        <button class="logout" title="Sign out" @click="logout">Logout</button>
+      </div>
     </header>
-    <main class="content">
+    <main :class="bare ? 'bare' : 'content'">
       <NuxtPage />
     </main>
   </div>
@@ -63,17 +72,35 @@ const mod = computed(() => (isMac ? '⌘' : 'Ctrl'))
   color: var(--fg);
   background: var(--panel-2);
 }
-.badge {
+.user {
   margin-left: auto;
-  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.who {
+  font-size: 12px;
   color: var(--muted);
+}
+.logout {
+  font-size: 12px;
+  color: var(--fg);
+  background: transparent;
   border: 1px solid var(--border);
-  border-radius: 999px;
-  padding: 0.1rem 0.5rem;
+  border-radius: 6px;
+  padding: 0.2rem 0.6rem;
+}
+.logout:hover {
+  border-color: var(--red);
+  color: var(--red);
 }
 .content {
   flex: 1;
   overflow: auto;
   padding: 1.25rem;
+}
+.bare {
+  flex: 1;
+  overflow: auto;
 }
 </style>
