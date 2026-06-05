@@ -9,6 +9,7 @@ export const NAV_SHORTCUTS: Array<{ to: string; label: string }> = [
   { to: '/notes', label: 'Notes' },
   { to: '/gallery', label: 'Gallery' },
   { to: '/calendar', label: 'Calendar' },
+  { to: '/documents', label: 'Docs' },
 ]
 
 export function useShortcuts() {
