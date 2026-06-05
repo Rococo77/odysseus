@@ -3,10 +3,10 @@ import type { Note, NoteCreate } from '~/types/notes'
 
 // Fourth migrated page (Tailwind). Notes board: active/archived views, plain
 // notes and checklists, create/edit, pin, archive, delete, item toggle, with
-// label filter and text search. Reminders/drag-reorder stay in the legacy app.
+// label filter and text search, plus drag-reorder (active, unfiltered view).
 const {
   notes, loading, error, showArchived,
-  fetchNotes, createNote, updateNote, deleteNote, togglePin, toggleArchive, toggleItem,
+  fetchNotes, createNote, updateNote, deleteNote, togglePin, toggleArchive, toggleItem, reorderNotes,
 } = useNotes()
 
 const query = ref('')
@@ -16,9 +16,29 @@ const notice = ref<string | null>(null)
 const showForm = ref(false)
 const editing = ref<Note | null>(null)
 const saving = ref(false)
+const dragId = ref<string | null>(null)
 
 onMounted(fetchNotes)
 watch(showArchived, fetchNotes)
+
+// Drag-reorder only makes sense on the unfiltered active list.
+const canReorder = computed(() => !showArchived.value && !query.value.trim() && !activeLabel.value)
+
+function onDragStart(id: string) { dragId.value = id }
+async function onDrop(targetId: string) {
+  const from = dragId.value
+  dragId.value = null
+  if (!from || from === targetId) return
+  const arr = [...notes.value]
+  const fi = arr.findIndex(n => n.id === from)
+  const ti = arr.findIndex(n => n.id === targetId)
+  if (fi < 0 || ti < 0) return
+  const [moved] = arr.splice(fi, 1)
+  arr.splice(ti, 0, moved!)
+  notes.value = arr
+  try { await reorderNotes(arr.map(n => n.id)) }
+  catch (e) { flash(e instanceof Error ? e.message : 'Reorder failed'); await fetchNotes() }
+}
 
 const labels = computed(() => {
   const set = new Set<string>(notes.value.map(n => n.label || '').filter(Boolean))
@@ -117,14 +137,24 @@ function flash(msg: string) {
       No {{ showArchived ? 'archived ' : '' }}notes{{ query || activeLabel ? ' match your filter' : '' }}.
     </p>
 
-    <div v-else class="columns-1 gap-2.5 sm:columns-2 lg:columns-3">
-      <NotesNoteCard
+    <p v-if="canReorder && visible.length > 1" class="mb-2 text-xs text-muted">Tip: drag cards to reorder.</p>
+    <div v-if="!error && (!loading || notes.length) && visible.length" class="columns-1 gap-2.5 sm:columns-2 lg:columns-3">
+      <div
         v-for="n in visible"
         :key="n.id"
-        :note="n"
-        :busy="busyId === n.id"
-        @edit="openEdit" @pin="onPin" @archive="onArchive" @remove="onRemove" @toggle-item="onItem"
-      />
+        class="break-inside-avoid"
+        :draggable="canReorder"
+        :class="{ 'opacity-50': dragId === n.id }"
+        @dragstart="onDragStart(n.id)"
+        @dragover.prevent
+        @drop="onDrop(n.id)"
+      >
+        <NotesNoteCard
+          :note="n"
+          :busy="busyId === n.id"
+          @edit="openEdit" @pin="onPin" @archive="onArchive" @remove="onRemove" @toggle-item="onItem"
+        />
+      </div>
     </div>
   </section>
 </template>

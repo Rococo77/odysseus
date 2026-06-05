@@ -60,6 +60,11 @@ export function useNotes() {
     if (n) n.items = res.items
   }
 
+  /** Persist a new ordering (POST /api/notes/reorder sets sort_order by index). */
+  function reorderNotes(ids: string[]) {
+    return request<{ ok: boolean; count: number }>('/api/notes/reorder', { method: 'POST', body: { ids } })
+  }
+
   return {
     notes,
     loading,
@@ -71,6 +76,7 @@ export function useNotes() {
     deleteNote,
     togglePin,
     toggleArchive,
+    reorderNotes,
     toggleItem,
   }
 }
