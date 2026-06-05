@@ -26,10 +26,8 @@ from datetime import datetime
 from typing import Dict
 
 from fastapi import FastAPI, Request, HTTPException
-from fastapi.responses import JSONResponse, FileResponse, HTMLResponse
+from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from starlette.middleware.base import BaseHTTPMiddleware
 
 # Core imports
 from core.constants import (
@@ -39,7 +37,7 @@ from core.constants import (
     REQUEST_TIMEOUT,
     OPENAI_API_KEY,
 )
-from core.database import SessionLocal, ApiToken
+from core.database import SessionLocal
 from core.middleware import SecurityHeadersMiddleware
 from core.auth import AuthManager
 from core.exceptions import (
@@ -49,10 +47,7 @@ from core.exceptions import (
     WebSearchError,
 )
 
-import bcrypt as _bcrypt
-
 from src.app_helpers import abs_join
-from starlette.responses import RedirectResponse
 
 # ========= LOGGING =========
 logging.basicConfig(
@@ -93,334 +88,23 @@ app.add_middleware(SecurityHeadersMiddleware)
 
 
 # ========= REQUEST TIMEOUT (FALLBACK FOR HUNG HANDLERS) =========
-# If a single request takes longer than REQUEST_HARD_TIMEOUT, abort it and
-# return 504 instead of holding the event loop hostage. Whitelisted paths
-# (streaming, long-running shell exec, research) are exempt because they
-# legitimately stay open. Without this, a single hung subprocess.run or
-# missing-timeout httpx call locks up the entire server for everyone.
-import asyncio as _asyncio
-from starlette.middleware.base import BaseHTTPMiddleware as _BaseHTTPMiddleware
-from starlette.responses import JSONResponse as _JSONResponse
+from app_setup.request_timeout import add_request_timeout
 
-REQUEST_HARD_TIMEOUT = float(os.getenv("REQUEST_HARD_TIMEOUT", "45"))
-_TIMEOUT_EXEMPT_PREFIXES = (
-    "/api/chat",  # streaming
-    "/api/shell/stream",  # SSE
-    "/api/research",  # multi-minute jobs
-    "/api/model/download",  # tmux setup may run pip installs
-    "/api/model/probe",  # SSE; iterates models with up to 8s timeout each
-    "/api/model-endpoints",  # /probe sub-route also iterates models
-    "/api/cookbook/setup",  # remote pacman/apt installs
-    "/api/upload",  # large files
-    "/api/image",  # diffusion proxies (inpaint/harmonize/upscale/etc.) — own 120s httpx timeout
-)
-
-
-class _RequestTimeoutMiddleware(_BaseHTTPMiddleware):
-    async def dispatch(self, request, call_next):
-        path = request.url.path or ""
-        if any(path.startswith(p) for p in _TIMEOUT_EXEMPT_PREFIXES):
-            return await call_next(request)
-        try:
-            return await _asyncio.wait_for(call_next(request), timeout=REQUEST_HARD_TIMEOUT)
-        except _asyncio.TimeoutError:
-            return _JSONResponse(
-                {"detail": f"Request exceeded {REQUEST_HARD_TIMEOUT:.0f}s timeout"},
-                status_code=504,
-            )
-
-
-app.add_middleware(_RequestTimeoutMiddleware)
+add_request_timeout(app)
 
 # ========= AUTH =========
-from routes.auth_routes import setup_auth_routes, SESSION_COOKIE
+from routes.auth_routes import setup_auth_routes
+from app_setup.auth import configure_auth
 
 auth_manager = AuthManager()
 app.state.auth_manager = auth_manager
-AUTH_ENABLED = os.getenv("AUTH_ENABLED", "true").lower() != "false"
-LOCALHOST_BYPASS = os.getenv("LOCALHOST_BYPASS", "false").lower() == "true"
-
-if AUTH_ENABLED:
-    AUTH_EXEMPT_EXACT = {
-        "/api/auth/setup",
-        "/api/auth/signup",
-        "/api/auth/login",
-        "/api/auth/logout",
-        "/api/auth/status",
-        "/api/auth/features",
-        "/api/auth/settings",
-        "/api/auth/integrations/presets",
-        "/api/health",
-        "/api/version",
-        "/login",
-    }
-    AUTH_EXEMPT_PREFIXES = ["/static"]
-
-    def _is_auth_exempt(path: str) -> bool:
-        return path in AUTH_EXEMPT_EXACT or any(path.startswith(p) for p in AUTH_EXEMPT_PREFIXES)
-
-    # In-memory token cache: prefix → list[(token_id, token_hash, owner, scopes)]. The DB
-    # query was running on every API-bearer request and scanning bcrypt
-    # checks linearly. With this cache, we hit the DB only when the cache
-    # version bumps (token created/revoked) — see _token_cache_invalidate
-    # in app.state, called by routes/api_token_routes.
-    _token_cache: dict = {}
-    _token_cache_lock = _asyncio.Lock()
-    _token_cache_dirty = True
-
-    def _token_cache_invalidate():
-        nonlocal_dict = app.state.__dict__
-        nonlocal_dict["_token_cache_dirty"] = True
-
-    app.state.invalidate_token_cache = _token_cache_invalidate
-    app.state._token_cache = _token_cache
-    app.state._token_cache_dirty = True
-
-    def _refresh_token_cache():
-        """Rebuild the prefix→[(id,hash)] map from the DB."""
-        from collections import defaultdict
-
-        new_map = defaultdict(list)
-        db = SessionLocal()
-        try:
-            rows = db.query(ApiToken).filter(ApiToken.is_active == True).all()
-            for r in rows:
-                scopes = [
-                    s.strip() for s in (getattr(r, "scopes", "") or "chat").split(",") if s.strip()
-                ]
-                new_map[r.token_prefix].append(
-                    (r.id, r.token_hash, getattr(r, "owner", None), scopes)
-                )
-        finally:
-            db.close()
-        _token_cache.clear()
-        _token_cache.update(new_map)
-        app.state._token_cache_dirty = False
-
-    # Headers that prove a request was forwarded by a proxy/tunnel (cloudflared,
-    # nginx, Caddy, Tailscale Funnel, …). cloudflared connects to the app FROM
-    # 127.0.0.1, so without this check every tunneled request would look like
-    # loopback and could bypass auth.
-    _PROXY_FWD_HEADERS = (
-        "cf-connecting-ip",
-        "cf-ray",
-        "cf-visitor",
-        "x-forwarded-for",
-        "x-forwarded-host",
-        "x-real-ip",
-        "forwarded",
-    )
-
-    def _is_trusted_loopback(request: Request) -> bool:
-        """True ONLY for a DIRECT loopback connection with no proxy/tunnel
-        forwarding headers. A bare ``client.host in ('127.0.0.1','::1')`` check is
-        unsafe behind a Cloudflare tunnel / reverse proxy: those connect from
-        loopback, so a remote visitor would otherwise inherit local trust and
-        slip past LOCALHOST_BYPASS or spoof the internal-tool path. Odysseus's own
-        in-process agent loopback calls carry none of these headers, so they still
-        qualify."""
-        host = request.client.host if request.client else None
-        if host not in ("127.0.0.1", "::1"):
-            return False
-        for _h in _PROXY_FWD_HEADERS:
-            if request.headers.get(_h):
-                return False
-        return True
-
-    class AuthMiddleware(BaseHTTPMiddleware):
-        async def dispatch(self, request: Request, call_next):
-            path = request.url.path
-            if _is_auth_exempt(path):
-                return await call_next(request)
-            # In-process internal-tool token bypass. Used by the agent
-            # tool layer when it HTTP-loopbacks to admin-gated routes
-            # (no admin cookie available in that context). Restricted to
-            # loopback clients + matching token to keep it locked down.
-            try:
-                from core.middleware import INTERNAL_TOOL_HEADER, INTERNAL_TOOL_TOKEN as _ITT
-
-                _hdr = request.headers.get(INTERNAL_TOOL_HEADER)
-                if _hdr and _hdr == _ITT and _is_trusted_loopback(request):
-                    # Impersonation: when the agent's loopback call sets
-                    # X-Odysseus-Owner, attribute the request to that user only
-                    # if they exist. Authorization checks remain separate; this
-                    # is just owner attribution for notes/calendar/etc.
-                    _impersonate = (request.headers.get("X-Odysseus-Owner") or "").strip()
-                    _auth_mgr = getattr(request.app.state, "auth_manager", None) or auth_manager
-                    if _impersonate and _impersonate in getattr(_auth_mgr, "users", {}):
-                        request.state.current_user = _impersonate
-                    else:
-                        request.state.current_user = "internal-tool"
-                    request.state.api_token = False
-                    return await call_next(request)
-            except Exception:
-                pass
-            # Allow DIRECT localhost requests (internal service calls from
-            # heartbeats etc.). Tunnel/proxy-forwarded requests are excluded by
-            # _is_trusted_loopback so LOCALHOST_BYPASS can't be abused over a
-            # Cloudflare tunnel / reverse proxy. Keep LOCALHOST_BYPASS=false for
-            # network-exposed deployments regardless.
-            if LOCALHOST_BYPASS and _is_trusted_loopback(request):
-                return await call_next(request)
-            if not auth_manager.is_configured:
-                # No users yet — redirect to login for first-time setup
-                if not path.startswith("/api/"):
-                    return RedirectResponse(url="/login", status_code=302)
-                return JSONResponse(status_code=401, content={"error": "Setup required"})
-
-            # --- Bearer token auth (API tokens for external integrations) ---
-            auth_header = request.headers.get("authorization", "")
-            if auth_header.startswith("Bearer ody_"):
-                raw_token = auth_header[7:]
-                # Sanity check: tokens are "ody_" + 43 chars of base64
-                if len(raw_token) < 12 or len(raw_token) > 100:
-                    return JSONResponse(status_code=401, content={"error": "Invalid API token"})
-                prefix = raw_token[:8]
-                try:
-                    if app.state._token_cache_dirty:
-                        async with _token_cache_lock:
-                            if app.state._token_cache_dirty:
-                                await _asyncio.to_thread(_refresh_token_cache)
-                    candidates = list(_token_cache.get(prefix, ()))
-                    matched_id = None
-                    matched_owner = None
-                    matched_scopes = []
-                    for tid, thash, owner, scopes in candidates:
-                        if _bcrypt.checkpw(raw_token.encode(), thash.encode()):
-                            matched_id = tid
-                            matched_owner = owner
-                            matched_scopes = scopes or []
-                            break
-                    if matched_id:
-                        # Update last_used_at off the hot path. Doing it
-                        # inline used to keep the request open across an
-                        # extra commit; do it fire-and-forget instead.
-                        async def _touch_last_used(tid: str):
-                            def _do():
-                                _db = SessionLocal()
-                                try:
-                                    _db.query(ApiToken).filter(ApiToken.id == tid).update(
-                                        {"last_used_at": datetime.utcnow()}
-                                    )
-                                    _db.commit()
-                                finally:
-                                    _db.close()
-
-                            try:
-                                await _asyncio.to_thread(_do)
-                            except Exception:
-                                pass
-
-                        _asyncio.create_task(_touch_last_used(matched_id))
-                        # Keep bearer-token callers out of normal cookie/user
-                        # routes. API-aware routes can read api_token_owner.
-                        request.state.current_user = "api"
-                        request.state.api_token = True
-                        request.state.api_token_id = matched_id
-                        request.state.api_token_owner = matched_owner
-                        request.state.api_token_scopes = matched_scopes
-                        return await call_next(request)
-                except Exception:
-                    logger.warning("API token auth error", exc_info=False)
-                # Invalid bearer token — reject immediately
-                return JSONResponse(status_code=401, content={"error": "Invalid API token"})
-
-            # --- Cookie-based session auth ---
-            token = request.cookies.get(SESSION_COOKIE)
-            if not auth_manager.validate_token(token):
-                if path.startswith("/api/"):
-                    return JSONResponse(status_code=401, content={"error": "Not authenticated"})
-                return RedirectResponse(url="/login", status_code=302)
-
-            # Attach current username to request state for downstream routes
-            request.state.current_user = auth_manager.get_username_for_token(token)
-            request.state.api_token = False
-            return await call_next(request)
-
-    app.add_middleware(AuthMiddleware)
-    logger.info("Auth middleware enabled (AUTH_ENABLED=true)")
-else:
-    logger.info("Auth middleware disabled (set AUTH_ENABLED=true to enable)")
+configure_auth(app, auth_manager)
 
 # ========= STATIC FILES =========
-os.makedirs(STATIC_DIR, exist_ok=True)
+from app_setup.static_files import mount_static, generated_images_router
 
-
-class _RevalidatingStatic(StaticFiles):
-    """Serve static assets normally, but force the browser to REVALIDATE
-    source files (.js/.css/.html) on every load instead of serving a stale
-    copy from disk cache. The app ships raw ES modules with no build step or
-    versioned URLs, so browsers were caching modules across deploys — a code
-    change wouldn't appear without a manual hard-refresh. `no-cache` keeps the
-    cached bytes but requires a conditional request; unchanged files still
-    return a cheap 304 (ETag/Last-Modified are preserved)."""
-
-    async def get_response(self, path, scope):
-        resp = await super().get_response(path, scope)
-        if path.endswith((".js", ".css", ".html")):
-            resp.headers["Cache-Control"] = "no-cache"
-        return resp
-
-
-app.mount("/static", _RevalidatingStatic(directory="static"), name="static")
-
-
-# ========= GENERATED IMAGES =========
-@app.get("/api/generated-image/{filename}")
-async def serve_generated_image(filename: str, request: Request):
-    """Serve generated images from the data directory."""
-    from pathlib import Path
-    import re
-
-    if not re.match(r"^[a-f0-9]{8,64}\.(png|jpg|jpeg|webp|gif|mp4|mov|webm|mkv|m4v)$", filename):
-        raise HTTPException(status_code=400, detail="Invalid filename")
-    img_path = Path("data/generated_images") / filename
-    if not img_path.exists():
-        raise HTTPException(status_code=404, detail="Image not found")
-    # SECURITY: filename is the only key, so anyone who knows / guesses a
-    # 12-hex content hash could pull another user's image bytes. Require
-    # auth and verify ownership via the gallery row (when one exists).
-    try:
-        from src.auth_helpers import get_current_user
-        from core.database import SessionLocal as _SL, GalleryImage as _GI
-
-        _user = get_current_user(request)
-        if _user:
-            _db = _SL()
-            try:
-                _row = _db.query(_GI).filter(_GI.filename == filename).first()
-                # Generated-but-not-yet-imported images have no row → allow.
-                # Row exists with a different owner → 404 (don't confirm existence).
-                if _row is not None and _row.owner and _row.owner != _user:
-                    raise HTTPException(status_code=404, detail="Image not found")
-            finally:
-                _db.close()
-    except HTTPException:
-        raise
-    except Exception:
-        pass
-    ext = filename.rsplit(".", 1)[-1].lower()
-    mime = {
-        "png": "image/png",
-        "jpg": "image/jpeg",
-        "jpeg": "image/jpeg",
-        "webp": "image/webp",
-        "gif": "image/gif",
-        "mp4": "video/mp4",
-        "mov": "video/quicktime",
-        "webm": "video/webm",
-        "mkv": "video/x-matroska",
-        "m4v": "video/mp4",
-    }.get(ext, "application/octet-stream")
-    # Generated-image filenames are content hashes → the bytes for a given
-    # filename never change. Cache them hard so the gallery doesn't
-    # re-download every full-size image each time it's opened. `immutable`
-    # tells the browser it never needs to revalidate within the max-age.
-    return FileResponse(
-        str(img_path),
-        media_type=mime,
-        headers={"Cache-Control": "public, max-age=31536000, immutable"},
-    )
+mount_static(app)
+app.include_router(generated_images_router)
 
 
 # ========= YOUTUBE INIT =========
