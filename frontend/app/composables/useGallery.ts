@@ -8,7 +8,7 @@ import type {
 const PAGE = 24
 
 export function useGallery() {
-  const { request } = useApi()
+  const { request, mediaUrl } = useApi()
 
   const items = useState<GalleryImage[]>('gallery-items', () => [])
   const albums = useState<GalleryAlbum[]>('gallery-albums', () => [])
@@ -128,10 +128,38 @@ export function useGallery() {
     await fetchAlbums()
   }
 
+  /** Download the given images as a single .zip. */
+  async function downloadZip(ids: string[]) {
+    const res = await fetch(mediaUrl('/api/gallery/download-zip'), {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids }),
+    })
+    if (!res.ok) throw new Error(`Download failed (${res.status})`)
+    const blob = await res.blob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'gallery.zip'
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
+  }
+
+  /** Queue untagged images for AI tagging (optionally scoped to an album). */
+  function aiTagBatch(albumId?: string) {
+    const q = albumId ? `?album_id=${albumId}` : ''
+    return request<{ ok: boolean; queued: number; total_untagged: number }>(
+      `/api/gallery/ai-tag-batch${q}`, { method: 'POST' },
+    )
+  }
+
   return {
     items, albums, tags, models, total, loading, error, filters, hasMore,
     fetchLibrary, loadMore, setFilters,
     upload, patchImage, toggleFavorite, rename, rotate, deleteImage,
-    fetchAlbums, createAlbum,
+    fetchAlbums, createAlbum, downloadZip, aiTagBatch,
   }
 }

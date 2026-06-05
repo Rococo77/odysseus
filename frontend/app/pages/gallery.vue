@@ -8,6 +8,7 @@ import type { GalleryImage, GallerySort } from '~/types/gallery'
 const {
   items, albums, tags, models, total, loading, error, filters, hasMore,
   fetchLibrary, loadMore, setFilters, upload, toggleFavorite, fetchAlbums, createAlbum,
+  deleteImage, downloadZip, aiTagBatch,
 } = useGallery()
 
 const search = ref(filters.value.search ?? '')
@@ -16,7 +17,41 @@ const uploading = ref(false)
 const notice = ref<string | null>(null)
 const fileInput = ref<HTMLInputElement | null>(null)
 
+// Bulk selection
+const selectMode = ref(false)
+const picked = ref<string[]>([])
+const bulkBusy = ref(false)
+
 onMounted(() => { fetchLibrary(); fetchAlbums() })
+
+function toggleSelect(id: string) {
+  picked.value = picked.value.includes(id) ? picked.value.filter(x => x !== id) : [...picked.value, id]
+}
+function exitSelect() { selectMode.value = false; picked.value = [] }
+
+async function onDownloadZip() {
+  if (!picked.value.length) return
+  bulkBusy.value = true
+  try { await downloadZip([...picked.value]); flash(`Downloading ${picked.value.length} image(s)`) }
+  catch (e) { flash(e instanceof Error ? e.message : 'Download failed') }
+  finally { bulkBusy.value = false }
+}
+async function onBulkDelete() {
+  if (!picked.value.length || !confirm(`Delete ${picked.value.length} image(s)?`)) return
+  bulkBusy.value = true
+  try {
+    for (const id of [...picked.value]) await deleteImage(id)
+    flash(`Deleted ${picked.value.length}`)
+    exitSelect()
+  } catch (e) { flash(e instanceof Error ? e.message : 'Delete failed') }
+  finally { bulkBusy.value = false }
+}
+async function onAiTag() {
+  try {
+    const r = await aiTagBatch(filters.value.album)
+    flash(r.queued ? `Queued ${r.queued} for AI tagging (${r.total_untagged} untagged)` : 'Nothing to tag')
+  } catch (e) { flash(e instanceof Error ? e.message : 'AI-tag failed') }
+}
 
 // Debounced search.
 let searchTimer: ReturnType<typeof setTimeout> | undefined
@@ -66,12 +101,21 @@ function flash(msg: string) {
     <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
       <h1 class="text-2xl font-semibold">Gallery <span class="text-sm font-normal text-muted">{{ total }}</span></h1>
       <div class="flex gap-2">
+        <button class="rounded-md border border-border px-3 py-1.5 text-sm hover:border-accent" @click="onAiTag">AI-tag</button>
+        <button class="rounded-md border border-border px-3 py-1.5 text-sm hover:border-accent" @click="selectMode ? exitSelect() : (selectMode = true)">{{ selectMode ? 'Cancel' : 'Select' }}</button>
         <button class="rounded-md border border-border px-3 py-1.5 text-sm hover:border-accent" @click="onCreateAlbum">+ Album</button>
         <button class="rounded-md border border-accent bg-accent px-3 py-1.5 text-sm text-white disabled:opacity-50" :disabled="uploading" @click="fileInput?.click()">
           {{ uploading ? 'Uploading…' : '⬆ Upload' }}
         </button>
         <input ref="fileInput" type="file" accept="image/*,video/*" multiple class="hidden" @change="onFiles" />
       </div>
+    </div>
+
+    <!-- Bulk action bar -->
+    <div v-if="selectMode" class="mb-3 flex items-center gap-2 rounded-md border border-accent/40 bg-panel2 px-3 py-1.5 text-sm" :class="{ 'opacity-60 pointer-events-none': bulkBusy }">
+      <span class="text-muted">{{ picked.length }} selected</span>
+      <button class="ml-auto rounded-md border border-border px-2.5 py-1 text-xs hover:border-accent disabled:opacity-50" :disabled="!picked.length" @click="onDownloadZip">Download ZIP</button>
+      <button class="rounded-md border border-border px-2.5 py-1 text-xs text-red hover:border-red disabled:opacity-50" :disabled="!picked.length" @click="onBulkDelete">Delete</button>
     </div>
 
     <!-- Toolbar -->
@@ -120,8 +164,11 @@ function flash(msg: string) {
         v-for="img in items"
         :key="img.id"
         :image="img"
+        :selectable="selectMode"
+        :selected="picked.includes(img.id)"
         @open="selected = $event"
         @favorite="onFavorite"
+        @toggle-select="toggleSelect"
       />
     </div>
 

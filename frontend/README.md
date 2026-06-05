@@ -197,8 +197,8 @@ Configured in `src-tauri/` (Rust shell):
    delete, item toggle, label filter, search, active/archived views.
    (Reminders/drag-reorder still legacy.)
 5. ✅ **Gallery** — paginated image library: search, tag/model/album/favorites
-   filters, sort, upload, favorite, rename, tag, album assign, rotate, delete.
-   (AI tagging, image editor, bulk zip stay legacy.)
+   filters, sort, upload, favorite, rename, tag, album assign, rotate, delete,
+   bulk select → ZIP download / delete, AI-tag batch. (Image editor stays legacy.)
 6. ✅ **Calendar** — month grid with per-calendar filter, event create/edit/
    delete (all-day & timed, raw RRULE); backend expands recurring occurrences.
    (CalDAV sync, import/export, LLM quick-parse stay legacy.)
