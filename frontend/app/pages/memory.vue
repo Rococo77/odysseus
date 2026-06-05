@@ -1,13 +1,15 @@
 <script setup lang="ts">
 import { MEMORY_CATEGORIES } from '~/types/memory'
 
-// Third migrated page — first one styled with Tailwind. Flat CRUD over
-// /api/memory: list, create, inline edit, pin, delete, with text search,
-// category filter and newest/oldest sort.
+// Flat CRUD over /api/memory (list, create, inline edit, pin, delete, search,
+// category filter, sort) plus parity tools: audit/dedup, and extract/import
+// suggestions from a session or a file.
 const {
   memories, loading, error,
   fetchMemories, createMemory, updateMemory, deleteMemory, togglePin,
+  audit, extractFromSession, importFile,
 } = useMemory()
+const { sessions, fetchSessions } = useSessions()
 
 const query = ref('')
 const activeCategory = ref<string | null>(null)
@@ -20,7 +22,62 @@ const draftText = ref('')
 const draftCategory = ref('fact')
 const creating = ref(false)
 
-onMounted(fetchMemories)
+// Parity tools
+const toolSession = ref('')
+const toolsBusy = ref(false)
+const suggestions = ref<string[]>([])
+const pickedSug = ref<string[]>([])
+const sugCategory = ref('fact')
+const fileInput = ref<HTMLInputElement | null>(null)
+
+onMounted(() => { fetchMemories(); fetchSessions() })
+
+async function onAudit() {
+  toolsBusy.value = true
+  try {
+    const r = await audit()
+    flash(r.removed > 0 ? `Audit removed ${r.removed} duplicate(s)` : 'Already tidy')
+  } catch (e) { flash(e instanceof Error ? e.message : 'Audit failed') }
+  finally { toolsBusy.value = false }
+}
+
+async function runSuggest(fn: () => Promise<string[]>) {
+  if (!toolSession.value) { flash('Pick a session first (for model config)'); return }
+  toolsBusy.value = true
+  try {
+    const s = await fn()
+    suggestions.value = s
+    pickedSug.value = [...s]
+    if (!s.length) flash('No suggestions found')
+  } catch (e) { flash(e instanceof Error ? e.message : 'Failed') }
+  finally { toolsBusy.value = false }
+}
+
+function onExtract() { return runSuggest(() => extractFromSession(toolSession.value)) }
+function onImportFile(e: Event) {
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
+  input.value = ''
+  if (!file) return
+  return runSuggest(() => importFile(toolSession.value, file))
+}
+
+function toggleSug(s: string) {
+  pickedSug.value = pickedSug.value.includes(s) ? pickedSug.value.filter(x => x !== s) : [...pickedSug.value, s]
+}
+
+async function addSelected() {
+  const chosen = suggestions.value.filter(s => pickedSug.value.includes(s))
+  if (!chosen.length) return
+  toolsBusy.value = true
+  try {
+    for (const text of chosen) await createMemory(text, sugCategory.value)
+    flash(`Added ${chosen.length} memory(ies)`)
+    suggestions.value = []
+    pickedSug.value = []
+  } catch (e) { flash(e instanceof Error ? e.message : 'Add failed') }
+  finally { toolsBusy.value = false }
+}
 
 const categories = computed(() => {
   const set = new Set<string>(memories.value.map(m => m.category).filter(Boolean))
@@ -99,6 +156,41 @@ function flash(msg: string) {
         </button>
       </div>
     </form>
+
+    <!-- Tools: audit / extract / import -->
+    <div class="mb-4 rounded-card border border-border bg-panel p-3" :class="{ 'opacity-60 pointer-events-none': toolsBusy }">
+      <div class="flex flex-wrap items-center gap-2">
+        <button class="rounded-md border border-border px-2.5 py-1.5 text-sm text-fg hover:border-accent" @click="onAudit">Audit / dedup</button>
+        <span class="text-xs text-muted">·</span>
+        <select v-model="toolSession" class="rounded-md border border-border bg-panel2 px-2 py-1.5 text-sm text-fg outline-none focus:border-accent">
+          <option value="">Pick a session…</option>
+          <option v-for="s in sessions" :key="s.id" :value="s.id">{{ s.name || '(untitled)' }}</option>
+        </select>
+        <button class="rounded-md border border-border px-2.5 py-1.5 text-sm text-fg hover:border-accent disabled:opacity-50" :disabled="!toolSession" @click="onExtract">Extract</button>
+        <button class="rounded-md border border-border px-2.5 py-1.5 text-sm text-fg hover:border-accent disabled:opacity-50" :disabled="!toolSession" @click="fileInput?.click()">Import file</button>
+        <input ref="fileInput" type="file" accept=".txt,.md,.pdf,.csv,.log,.json,.py,.js,.html" class="hidden" @change="onImportFile" />
+      </div>
+
+      <!-- Suggestions review -->
+      <div v-if="suggestions.length" class="mt-3 border-t border-border pt-3">
+        <div class="mb-2 flex items-center justify-between">
+          <span class="text-xs text-muted">{{ pickedSug.length }}/{{ suggestions.length }} selected</span>
+          <div class="flex items-center gap-2">
+            <select v-model="sugCategory" class="rounded-md border border-border bg-panel2 px-2 py-1 text-xs text-fg outline-none focus:border-accent">
+              <option v-for="c in MEMORY_CATEGORIES" :key="c" :value="c">{{ c }}</option>
+            </select>
+            <button class="rounded-md border border-accent bg-accent px-3 py-1 text-xs text-white disabled:opacity-50" :disabled="!pickedSug.length" @click="addSelected">Add selected</button>
+            <button class="rounded-md border border-border px-2.5 py-1 text-xs text-muted hover:text-fg" @click="suggestions = []; pickedSug = []">Dismiss</button>
+          </div>
+        </div>
+        <ul class="flex max-h-60 flex-col gap-1 overflow-auto">
+          <li v-for="(s, i) in suggestions" :key="i" class="flex items-start gap-2 text-sm">
+            <input type="checkbox" class="mt-1 accent-accent" :checked="pickedSug.includes(s)" @change="toggleSug(s)" />
+            <span :class="pickedSug.includes(s) ? 'text-fg' : 'text-muted'">{{ s }}</span>
+          </li>
+        </ul>
+      </div>
+    </div>
 
     <!-- Toolbar -->
     <div class="mb-3 flex flex-wrap items-center gap-2">

@@ -190,8 +190,9 @@ Configured in `src-tauri/` (Rust shell):
 2. ✅ **Sessions** — active list (search, sort, folders, star/rename/archive/
    delete, bulk select, auto-sort) + archived view (server search/sort,
    paginated, unarchive/export/delete) + history drawer with export & compact.
-3. ✅ **Memory** — flat CRUD (list, create, inline edit, pin, delete) with
-   search, category filter, sort. First Tailwind-styled page.
+3. ✅ **Memory** — CRUD (list, create, inline edit, pin, delete) with search,
+   category filter, sort; plus audit/dedup and extract/import suggestions from
+   a session or file (review + add selected).
 4. ✅ **Notes** — board with notes & checklists: create/edit, pin, archive,
    delete, item toggle, label filter, search, active/archived views.
    (Reminders/drag-reorder still legacy.)

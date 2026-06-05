@@ -55,6 +55,31 @@ export function useMemory() {
     if (m) m.pinned = next
   }
 
+  /** Deduplicate/consolidate memories via the default model. */
+  function audit() {
+    return request<{ ok: boolean; before: number; after: number; removed: number }>(
+      '/api/memory/audit', { method: 'POST' },
+    )
+  }
+
+  /** Extract memory suggestions from a session's chat history. */
+  async function extractFromSession(sessionId: string): Promise<string[]> {
+    const res = await request<{ suggestions: string[] }>('/api/memory/extract', {
+      method: 'POST',
+      body: new URLSearchParams({ session: sessionId }),
+    })
+    return res.suggestions ?? []
+  }
+
+  /** Extract memory suggestions from an uploaded file (needs a session for LLM config). */
+  async function importFile(sessionId: string, file: File): Promise<string[]> {
+    const fd = new FormData()
+    fd.set('session', sessionId)
+    fd.set('file', file, file.name)
+    const res = await request<{ suggestions: string[] }>('/api/memory/import', { method: 'POST', body: fd })
+    return res.suggestions ?? []
+  }
+
   return {
     memories,
     loading,
@@ -64,5 +89,8 @@ export function useMemory() {
     updateMemory,
     deleteMemory,
     togglePin,
+    audit,
+    extractFromSession,
+    importFile,
   }
 }
