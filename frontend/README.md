@@ -208,7 +208,8 @@ Configured in `src-tauri/` (Rust shell):
    toggles, file attachments (`/api/upload` + thumbnails), character presets
    (`/api/presets`), agent tool-call display, **streamed documents**, **research
    progress + sources/findings**, web/RAG **source citations**, **memories
-   used**, token metrics, stop.
+   used**, token metrics, stop, plus per-message **edit / delete / regenerate**.
+   (Document editor stays legacy.)
 8. ✅ Auth (login/setup/signup/2FA), Settings, Admin pages — the frontend is
    self-sufficient; `/app` cutover wired (`ODYSSEUS_FRONTEND=next`).
    ⬜ Retire `static/` pages now that each is at parity; eventually drop `style.css`.

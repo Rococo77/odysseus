@@ -3,9 +3,25 @@ import type { DisplayMessage } from '~/types/chat'
 
 const props = defineProps<{ message: DisplayMessage }>()
 const { mediaUrl } = useApi()
+const { streaming, deleteMessage, editMessage, regenerate } = useChat()
 
 const html = computed(() => renderMarkdown(props.message.content))
 const isUser = computed(() => props.message.role === 'user')
+// Actions only make sense once the message is persisted (has a db id) and idle.
+const canAct = computed(() => !!props.message.dbId && !props.message.streaming && !streaming.value)
+
+const editing = ref(false)
+const draft = ref('')
+function startEdit() { draft.value = props.message.content; editing.value = true }
+async function saveEdit() {
+  const c = draft.value.trim()
+  editing.value = false
+  if (c && c !== props.message.content) await editMessage(props.message, c)
+}
+function onDelete() {
+  if (confirm('Delete this message?')) deleteMessage(props.message)
+}
+function onRegen() { regenerate(props.message) }
 
 function imgSrc(url: string) {
   return url.startsWith('/') ? mediaUrl(url) : url
@@ -19,7 +35,7 @@ function thumb(id: string) {
 <template>
   <div class="flex" :class="isUser ? 'justify-end' : 'justify-start'">
     <div
-      class="max-w-[85%] rounded-card border px-3 py-2"
+      class="group relative max-w-[85%] rounded-card border px-3 py-2"
       :class="[
         isUser ? 'border-accent/40 bg-accent/10' : 'border-border bg-panel',
         message.error ? 'border-red' : '',
@@ -28,6 +44,12 @@ function thumb(id: string) {
       <div class="mb-1 flex items-center gap-2 text-[11px] uppercase tracking-wide text-muted">
         <span>{{ message.role }}</span>
         <span v-if="message.model" class="normal-case">· {{ message.model }}</span>
+        <!-- Per-message actions (visible on hover) -->
+        <span v-if="canAct && !editing" class="ml-auto hidden gap-1 group-hover:flex">
+          <button class="text-muted hover:text-fg" title="Edit" @click="startEdit">✎</button>
+          <button v-if="!isUser" class="text-muted hover:text-fg" title="Regenerate" @click="onRegen">↻</button>
+          <button class="text-muted hover:text-red" title="Delete" @click="onDelete">🗑</button>
+        </span>
       </div>
 
       <!-- Attachments -->
@@ -68,8 +90,22 @@ function thumb(id: string) {
         </details>
       </div>
 
+      <!-- Inline edit -->
+      <div v-if="editing" class="flex flex-col gap-2">
+        <textarea
+          v-model="draft"
+          rows="3"
+          class="w-full resize-y rounded-md border border-accent bg-panel2 px-2 py-1.5 text-sm text-fg outline-none"
+          @keydown.esc="editing = false"
+        />
+        <div class="flex justify-end gap-2">
+          <button class="rounded-md border border-border px-2.5 py-1 text-xs text-fg" @click="editing = false">Cancel</button>
+          <button class="rounded-md border border-accent bg-accent px-3 py-1 text-xs text-white" @click="saveEdit">Save</button>
+        </div>
+      </div>
+
       <!-- Rendered markdown -->
-      <div class="md text-sm leading-relaxed text-fg" v-html="html" />
+      <div v-else class="md text-sm leading-relaxed text-fg" v-html="html" />
 
       <span v-if="message.streaming" class="ml-0.5 inline-block h-3.5 w-1.5 animate-pulse bg-accent align-middle" />
 

@@ -226,6 +226,48 @@ export function useChat() {
     }
   }
 
+  /** Delete a message (and, when deleting a user turn, its immediate reply). */
+  async function deleteMessage(msg: DisplayMessage) {
+    const id = sessionId.value
+    if (!id || !msg.dbId) return
+    const ids = [msg.dbId]
+    const i = messages.value.indexOf(msg)
+    if (msg.role === 'user') {
+      const next = messages.value[i + 1]
+      if (next?.role === 'assistant' && next.dbId) ids.push(next.dbId)
+    }
+    await request(`/api/session/${id}/delete-messages`, { method: 'POST', body: { msg_ids: ids } })
+    messages.value = messages.value.filter(m => !m.dbId || !ids.includes(m.dbId))
+  }
+
+  /** Edit a message's content in place (no re-run). */
+  async function editMessage(msg: DisplayMessage, content: string) {
+    const id = sessionId.value
+    if (!id || !msg.dbId) return
+    await request(`/api/session/${id}/edit-message`, { method: 'POST', body: { msg_id: msg.dbId, content } })
+    msg.content = content
+  }
+
+  /** Regenerate the reply to the user turn preceding `assistant`: truncate the
+   *  history back to that user message, then re-send it. */
+  async function regenerate(assistant: DisplayMessage) {
+    const id = sessionId.value
+    if (!id || streaming.value) return
+    const i = messages.value.indexOf(assistant)
+    if (i < 0) return
+    let j = -1
+    for (let k = i - 1; k >= 0; k--) {
+      if (messages.value[k]!.role === 'user') { j = k; break }
+    }
+    if (j < 0) return
+    const user = messages.value[j]!
+    const text = user.content
+    const attachments = user.attachments
+    await request(`/api/session/${id}/truncate`, { method: 'POST', body: { keep_count: j } })
+    messages.value = messages.value.slice(0, j)
+    await send(text, attachments?.length ? { attachments } : {})
+  }
+
   async function stop() {
     controller?.abort()
     if (sessionId.value) {
@@ -236,5 +278,6 @@ export function useChat() {
   return {
     messages, sessionId, streaming, error, metrics, presets,
     loadHistory, newSession, send, stop, fetchPresets, uploadFiles,
+    deleteMessage, editMessage, regenerate,
   }
 }
