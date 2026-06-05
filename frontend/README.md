@@ -194,8 +194,8 @@ Configured in `src-tauri/` (Rust shell):
    category filter, sort; plus audit/dedup and extract/import suggestions from
    a session or file (review + add selected).
 4. ✅ **Notes** — board with notes & checklists: create/edit, pin, archive,
-   delete, item toggle, label filter, search, active/archived views.
-   (Reminders/drag-reorder still legacy.)
+   delete, item toggle, color, label, due date, repeat (reminders), label
+   filter, search, active/archived views. (Drag-reorder stays legacy.)
 5. ✅ **Gallery** — paginated image library: search, tag/model/album/favorites
    filters, sort, upload, favorite, rename, tag, album assign, rotate, delete,
    bulk select → ZIP download / delete, AI-tag batch. (Image editor stays legacy.)

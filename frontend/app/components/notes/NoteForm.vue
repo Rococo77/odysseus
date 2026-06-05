@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Note, NoteCreate, NoteType, NoteItem } from '~/types/notes'
+import type { Note, NoteCreate, NoteType, NoteItem, NoteRepeat } from '~/types/notes'
 import { NOTE_COLORS } from '~/utils/notes'
 
 const props = defineProps<{ note?: Note | null; saving?: boolean }>()
@@ -14,6 +14,8 @@ const noteType = ref<NoteType>(props.note?.note_type ?? 'note')
 const label = ref(props.note?.label ?? '')
 const color = ref<string | null>(props.note?.color ?? null)
 const dueDate = ref(props.note?.due_date ?? '')
+const repeat = ref<NoteRepeat>(props.note?.repeat ?? 'none')
+const REPEATS: NoteRepeat[] = ['none', 'daily', 'weekly', 'monthly', 'yearly']
 const items = ref<NoteItem[]>(props.note?.items ? props.note.items.map(i => ({ ...i })) : [{ text: '', done: false }])
 
 function addItem() { items.value.push({ text: '', done: false }) }
@@ -32,6 +34,7 @@ function onSubmit() {
     label: label.value.trim() || null,
     color: color.value,
     due_date: dueDate.value || null,
+    repeat: repeat.value,
   }
   if (noteType.value === 'checklist') {
     payload.items = items.value.filter(i => i.text.trim()).map(i => ({ text: i.text.trim(), done: i.done }))
@@ -84,9 +87,12 @@ function onSubmit() {
       <button type="button" class="self-start text-xs text-accent hover:underline" @click="addItem">+ Add item</button>
     </div>
 
-    <div class="mb-3 grid grid-cols-2 gap-2">
-      <input v-model="label" type="text" placeholder="Label (optional)" class="rounded-md border border-border bg-panel2 px-2 py-1.5 text-sm text-fg outline-none focus:border-accent" />
+    <div class="mb-3 grid grid-cols-3 gap-2">
+      <input v-model="label" type="text" placeholder="Label" class="rounded-md border border-border bg-panel2 px-2 py-1.5 text-sm text-fg outline-none focus:border-accent" />
       <input v-model="dueDate" type="date" class="rounded-md border border-border bg-panel2 px-2 py-1.5 text-sm text-fg outline-none focus:border-accent" />
+      <select v-model="repeat" class="rounded-md border border-border bg-panel2 px-2 py-1.5 text-sm text-fg outline-none focus:border-accent" title="Repeat">
+        <option v-for="r in REPEATS" :key="r" :value="r">{{ r === 'none' ? 'No repeat' : r }}</option>
+      </select>
     </div>
 
     <div class="mb-4 flex items-center gap-1.5">
