@@ -8,6 +8,7 @@ const emit = defineEmits<{
   resume: [id: string]
   edit: [task: Task]
   remove: [id: string]
+  details: [task: Task]
 }>()
 
 const statusColor = computed(() => {
@@ -42,6 +43,7 @@ const runStatusClass = computed(() => {
         <button v-if="task.status !== 'paused'" class="rounded-md border border-border bg-panel2 px-1.5 py-0.5 leading-none text-fg hover:border-accent disabled:opacity-40" :disabled="busy" title="Pause" @click="emit('pause', task.id)">⏸</button>
         <button v-else class="rounded-md border border-border bg-panel2 px-1.5 py-0.5 leading-none text-fg hover:border-accent disabled:opacity-40" :disabled="busy" title="Resume" @click="emit('resume', task.id)">▶</button>
         <button class="rounded-md border border-border bg-panel2 px-1.5 py-0.5 leading-none text-fg hover:border-accent disabled:opacity-40" :disabled="busy" title="Run now" @click="emit('run', task.id)">⚡</button>
+        <button class="rounded-md border border-border bg-panel2 px-1.5 py-0.5 leading-none text-fg hover:border-accent disabled:opacity-40" :disabled="busy" title="History & webhook" @click="emit('details', task)">🕘</button>
         <button class="rounded-md border border-border bg-panel2 px-1.5 py-0.5 leading-none text-fg hover:border-accent disabled:opacity-40" :disabled="busy" title="Edit" @click="emit('edit', task)">✎</button>
         <button class="rounded-md border border-border bg-panel2 px-1.5 py-0.5 leading-none text-fg hover:border-red disabled:opacity-40" :disabled="busy" title="Delete" @click="emit('remove', task.id)">🗑</button>
       </div>

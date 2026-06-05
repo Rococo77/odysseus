@@ -57,6 +57,14 @@ export function useTasks() {
     return request<TaskRun[]>(`/api/tasks/${id}/runs?limit=${limit}`)
   }
 
+  /** Regenerate a webhook task's token (invalidates the old URL). */
+  async function regenerateWebhook(id: string): Promise<string> {
+    const res = await request<{ webhook_token: string }>(`/api/tasks/${id}/webhook-regenerate`, { method: 'POST' })
+    const t = tasks.value.find(t => t.id === id)
+    if (t) t.webhook_token = res.webhook_token
+    return res.webhook_token
+  }
+
   return {
     tasks,
     loading,
@@ -69,5 +77,6 @@ export function useTasks() {
     pauseTask,
     resumeTask,
     fetchRuns,
+    regenerateWebhook,
   }
 }

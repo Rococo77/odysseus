@@ -185,8 +185,8 @@ Configured in `src-tauri/` (Rust shell):
 
 ## Migration roadmap (strangler)
 
-1. ✅ **Tasks** — pilot (this PR): list, create/edit, delete, run-now,
-   pause/resume, schedule labels.
+1. ✅ **Tasks** — list, create/edit, delete, run-now, pause/resume, schedule
+   labels, run-history viewer and webhook URL + token regeneration.
 2. ✅ **Sessions** — active list (search, sort, folders, star/rename/archive/
    delete, bulk select, auto-sort) + archived view (server search/sort,
    paginated, unarchive/export/delete) + history drawer with export & compact.

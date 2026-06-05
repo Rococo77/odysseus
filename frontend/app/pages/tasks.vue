@@ -14,6 +14,7 @@ const editing = ref<Task | null>(null)
 const saving = ref(false)
 const busyId = ref<string | null>(null)
 const notice = ref<string | null>(null)
+const detailsTask = ref<Task | null>(null)
 
 onMounted(fetchTasks)
 
@@ -111,8 +112,11 @@ function flash(msg: string) {
         @resume="onResume"
         @edit="openEdit"
         @remove="onRemove"
+        @details="detailsTask = $event"
       />
     </div>
+
+    <TasksTaskRuns v-if="detailsTask" :task="detailsTask" @close="detailsTask = null" />
   </section>
 </template>
 
