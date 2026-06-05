@@ -72,9 +72,7 @@ app = FastAPI(
 # Defaults cover local web plus the Tauri desktop webview origins:
 # macOS/iOS use `tauri://localhost`; Linux/Windows use `http://tauri.localhost`.
 # Override with ALLOWED_ORIGINS (comma-separated) for other deployments.
-_default_origins = (
-    "http://localhost,http://127.0.0.1,tauri://localhost,http://tauri.localhost"
-)
+_default_origins = "http://localhost,http://127.0.0.1,tauri://localhost,http://tauri.localhost"
 allowed_origins = os.getenv("ALLOWED_ORIGINS", _default_origins).split(",")
 app.add_middleware(
     CORSMiddleware,
