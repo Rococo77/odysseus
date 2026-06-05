@@ -154,7 +154,11 @@ if AUTH_ENABLED:
         "/api/version",
         "/login",
     }
-    AUTH_EXEMPT_PREFIXES = ["/static"]
+    # /app serves the Nuxt frontend's static assets + SPA shell. The app
+    # authenticates itself (it calls /api/auth/status and redirects to its own
+    # /app/login route); the data APIs under /api stay protected, so exempting
+    # the static prefix is safe.
+    AUTH_EXEMPT_PREFIXES = ["/static", "/app"]
 
     def _is_auth_exempt(path: str) -> bool:
         return path in AUTH_EXEMPT_EXACT or any(path.startswith(p) for p in AUTH_EXEMPT_PREFIXES)
@@ -350,20 +354,42 @@ class _RevalidatingStatic(StaticFiles):
 
 app.mount("/static", _RevalidatingStatic(directory="static"), name="static")
 
-# ========= NEXT-GEN FRONTEND (incremental Nuxt migration) =========
-# Strangler facade: when the Nuxt 4 build (see frontend/) exists, it is served
-# under /app so migrated pages — starting with /app/tasks — run alongside the
-# legacy UI. This stays inert until the output (gitignored) is generated, so a
-# plain checkout is unaffected. Build it for this sub-path with:
+
+class _SpaStatic(_RevalidatingStatic):
+    """Static files for a single-page app: when a path doesn't resolve to a
+    real file (a client-side route like /app/admin that wasn't prerendered),
+    fall back to the SPA shell (200.html) so deep links and reloads work."""
+
+    async def get_response(self, path, scope):
+        resp = await super().get_response(path, scope)
+        if resp.status_code == 404 and not path.startswith("_nuxt/"):
+            try:
+                return await super().get_response("200.html", scope)
+            except Exception:
+                pass
+        return resp
+
+
+# ========= NEXT-GEN FRONTEND (Nuxt migration) =========
+# When the Nuxt 4 build (see frontend/) exists, it is served under /app. Build
+# it for this sub-path with:
 #   cd frontend && NUXT_APP_BASE_URL=/app/ npm run generate
-# (the default '/' base is for the Tauri desktop build).
+# (the default '/' base is for the Tauri desktop build). Inert on a plain
+# checkout since the output is gitignored.
 _NEXT_DIST = os.path.join(BASE_DIR, "frontend", ".output", "public")
 if os.path.isdir(_NEXT_DIST):
     app.mount(
         "/app",
-        _RevalidatingStatic(directory=_NEXT_DIST, html=True),
+        _SpaStatic(directory=_NEXT_DIST, html=True),
         name="frontend-next",
     )
+
+
+def _next_frontend_default() -> bool:
+    """True when the new Nuxt frontend should be the default UI. Opt-in via
+    ODYSSEUS_FRONTEND=next so the cutover is explicit and reversible; inert
+    until the build exists."""
+    return os.path.isdir(_NEXT_DIST) and os.getenv("ODYSSEUS_FRONTEND", "").lower() == "next"
 
 # ========= GENERATED IMAGES =========
 @app.get("/api/generated-image/{filename}")
@@ -692,6 +718,11 @@ def _serve_html_with_nonce(request: Request, file_path: str) -> HTMLResponse:
 
 @app.get("/")
 async def serve_index(request: Request):
+    # Cutover: when the Nuxt frontend is the default, redirect legacy SPA routes
+    # (this handler backs /, /tasks, /notes, … via serve_index) to /app.
+    if _next_frontend_default():
+        p = request.url.path
+        return RedirectResponse("/app/" if p == "/" else f"/app{p}", status_code=307)
     static_path = abs_join(BASE_DIR, "static/index.html")
     if os.path.exists(static_path):
         return _serve_html_with_nonce(request, static_path)
@@ -743,6 +774,8 @@ async def serve_backgrounds(request: Request):
 
 @app.get("/login")
 async def serve_login(request: Request):
+    if _next_frontend_default():
+        return RedirectResponse("/app/login", status_code=307)
     return _serve_html_with_nonce(request, abs_join(BASE_DIR, "static/login.html"))
 
 @app.get("/api/version")

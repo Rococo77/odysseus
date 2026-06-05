@@ -128,8 +128,25 @@ NUXT_APP_BASE_URL=/app/ npm run generate   # → .output/public/
 ```
 
 FastAPI auto-mounts `.output/public` at `/app` when it exists (guarded mount in
-`app.py`), so the page becomes available at `http://localhost:7000/app/tasks`
-next to the legacy `/tasks`.
+`app.py`) with SPA-fallback routing, so the new UI is available at
+`http://localhost:7000/app/chat` next to the legacy UI. The `/app` prefix is
+exempt from the auth middleware (the SPA authenticates itself and redirects to
+`/app/login`); the `/api/*` data endpoints stay protected.
+
+## Cutover (make the new frontend the default)
+
+Once the `/app` build exists, flip the default UI with an env var — explicit
+and reversible:
+
+```bash
+NUXT_APP_BASE_URL=/app/ npm run generate   # in frontend/
+ODYSSEUS_FRONTEND=next uvicorn app:app      # legacy routes now redirect to /app
+```
+
+With `ODYSSEUS_FRONTEND=next`, `app.py` redirects `/`, `/login` and the legacy
+page routes (`/tasks`, `/notes`, …) to their `/app/...` equivalents. Unset it to
+fall back to the legacy UI. To **retire** the legacy frontend, delete the
+corresponding `static/js/*.js` + markup once each page is confirmed at parity.
 
 ## Desktop hardening
 
@@ -189,7 +206,9 @@ Configured in `src-tauri/` (Rust shell):
    (`/api/presets`), agent tool-call display, **streamed documents**, **research
    progress + sources/findings**, web/RAG **source citations**, **memories
    used**, token metrics, stop.
-8. ⬜ Retire `static/` pages as each is migrated; eventually drop `style.css`
+8. ✅ Auth (login/setup/signup/2FA), Settings, Admin pages — the frontend is
+   self-sufficient; `/app` cutover wired (`ODYSSEUS_FRONTEND=next`).
+   ⬜ Retire `static/` pages now that each is at parity; eventually drop `style.css`.
 9. ✅ Desktop integration: CORS for Tauri origins, backend sidecar, strict CSP,
    native menu + system tray, auto-update wiring (see "Desktop hardening").
 
