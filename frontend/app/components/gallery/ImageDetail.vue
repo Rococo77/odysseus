@@ -2,7 +2,7 @@
 import type { GalleryImage } from '~/types/gallery'
 
 const props = defineProps<{ image: GalleryImage }>()
-const emit = defineEmits<{ close: [] }>()
+const emit = defineEmits<{ close: []; edit: [img: GalleryImage] }>()
 
 const { mediaUrl } = useApi()
 const { albums, patchImage, rename, rotate, deleteImage } = useGallery()
@@ -89,7 +89,8 @@ const aiTags = computed(() => (props.image.ai_tags || '').split(',').map(t => t.
           <dt>Created</dt><dd class="text-fg/80">{{ formatDateTime(image.created_at) }}</dd>
         </dl>
 
-        <button class="mt-auto rounded-md border border-red px-3 py-1.5 text-red hover:bg-red/10" @click="onDelete">Delete</button>
+        <button class="mt-auto rounded-md border border-accent px-3 py-1.5 text-accent hover:bg-accent/10" @click="emit('edit', image)">Edit image…</button>
+        <button class="rounded-md border border-red px-3 py-1.5 text-red hover:bg-red/10" @click="onDelete">Delete</button>
       </div>
     </div>
   </div>

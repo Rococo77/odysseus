@@ -13,6 +13,7 @@ const {
 
 const search = ref(filters.value.search ?? '')
 const selected = ref<GalleryImage | null>(null)
+const editorImage = ref<GalleryImage | null>(null)
 const uploading = ref(false)
 const notice = ref<string | null>(null)
 const fileInput = ref<HTMLInputElement | null>(null)
@@ -178,7 +179,8 @@ function flash(msg: string) {
       </button>
     </div>
 
-    <GalleryImageDetail v-if="selected" :image="selected" @close="selected = null" />
+    <GalleryImageDetail v-if="selected && !editorImage" :image="selected" @close="selected = null" @edit="editorImage = $event; selected = null" />
+    <GalleryImageEditor v-if="editorImage" :image="editorImage" @close="editorImage = null" @saved="editorImage = null; fetchLibrary()" />
   </section>
 </template>
 

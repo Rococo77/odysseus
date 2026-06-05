@@ -198,7 +198,9 @@ Configured in `src-tauri/` (Rust shell):
    filter, search, active/archived views, drag-reorder.
 5. ✅ **Gallery** — paginated image library: search, tag/model/album/favorites
    filters, sort, upload, favorite, rename, tag, album assign, rotate, delete,
-   bulk select → ZIP download / delete, AI-tag batch. (Image editor stays legacy.)
+   bulk select → ZIP download / delete, AI-tag batch, and an **image editor**
+   (sharpen, denoise, remove-bg, enhance-face, upscale, harmonize → save in
+   place or as a copy). (Mask inpaint stays legacy.)
 6. ✅ **Calendar** — month / week / day views with per-calendar filter, event
    create/edit/delete (all-day & timed, raw RRULE), natural-language quick-add,
    .ics import/export, and CalDAV connect (Settings) + sync; backend expands
