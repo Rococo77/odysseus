@@ -200,9 +200,9 @@ Configured in `src-tauri/` (Rust shell):
    filters, sort, upload, favorite, rename, tag, album assign, rotate, delete,
    bulk select → ZIP download / delete, AI-tag batch. (Image editor stays legacy.)
 6. ✅ **Calendar** — month / week / day views with per-calendar filter, event
-   create/edit/delete (all-day & timed, raw RRULE), natural-language quick-add
-   and .ics import/export; backend expands recurring occurrences. (CalDAV sync
-   stays legacy.)
+   create/edit/delete (all-day & timed, raw RRULE), natural-language quick-add,
+   .ics import/export, and CalDAV connect (Settings) + sync; backend expands
+   recurring occurrences.
 7. ✅ **Chat** — SSE streaming over `/api/chat_stream`: session sidebar, new
    chat, markdown rendering (marked + DOMPurify), chat/agent/web/research/bash
    toggles, file attachments (`/api/upload` + thumbnails), character presets

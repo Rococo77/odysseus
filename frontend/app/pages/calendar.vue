@@ -6,7 +6,7 @@ import type { CalendarEvent } from '~/types/calendar'
 // recurring occurrences for the visible range. CalDAV sync stays legacy.
 const {
   events, calendars, activeCalendar, loading, error,
-  fetchCalendars, fetchEvents, createEvent, quickParse, importIcs, exportIcs,
+  fetchCalendars, fetchEvents, createEvent, quickParse, importIcs, exportIcs, syncCaldav,
 } = useCalendar()
 
 const cursor = ref(new Date())
@@ -48,6 +48,11 @@ async function onExport() {
   const cal = calendars.value.find(c => c.href === activeCalendar.value) || calendars.value[0]
   if (!cal) { notify('No calendar to export'); return }
   try { await exportIcs(cal.href, cal.name) } catch (e) { notify(e instanceof Error ? e.message : 'Export failed') }
+}
+
+async function onSync() {
+  try { await syncCaldav(); await fetchCalendars(); await reload(); notify('Synced from CalDAV') }
+  catch (e) { notify(e instanceof Error ? e.message : 'Sync failed (configure CalDAV in Settings)') }
 }
 const viewMode = ref<'month' | 'week' | 'day'>('month')
 const viewYear = computed(() => cursor.value.getFullYear())
@@ -142,6 +147,7 @@ async function onSaved() { closeModal(); await reload() }
       <button class="rounded-md border border-accent bg-accent px-3 py-1.5 text-sm text-white disabled:opacity-50" :disabled="!quickText.trim()" @click="onQuickAdd">Quick add</button>
       <button class="rounded-md border border-border px-2.5 py-1.5 text-sm text-fg hover:border-accent" @click="icsInput?.click()">Import .ics</button>
       <button class="rounded-md border border-border px-2.5 py-1.5 text-sm text-fg hover:border-accent" @click="onExport">Export .ics</button>
+      <button class="rounded-md border border-border px-2.5 py-1.5 text-sm text-fg hover:border-accent" @click="onSync">Sync</button>
       <input ref="icsInput" type="file" accept=".ics" class="hidden" @change="onImport" />
     </div>
 

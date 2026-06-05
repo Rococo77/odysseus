@@ -77,9 +77,21 @@ export function useCalendar() {
     URL.revokeObjectURL(url)
   }
 
+  // --- CalDAV integration ---
+  function saveCaldav(cfg: { url: string; username?: string; password?: string }) {
+    return request<{ ok: boolean; cleared?: boolean }>('/api/calendar/config', { method: 'POST', body: cfg })
+  }
+  function testCaldav(cfg: { url?: string; username?: string; password?: string } = {}) {
+    return request<{ ok: boolean; error?: string }>('/api/calendar/test', { method: 'POST', body: cfg })
+  }
+  function syncCaldav() {
+    return request<Record<string, unknown>>('/api/calendar/sync', { method: 'POST' })
+  }
+
   return {
     events, calendars, activeCalendar, loading, error,
     fetchCalendars, fetchEvents, createEvent, updateEvent, deleteEvent,
     quickParse, importIcs, exportIcs,
+    saveCaldav, testCaldav, syncCaldav,
   }
 }

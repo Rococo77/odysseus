@@ -4,6 +4,7 @@ const { isAdmin } = useAuth()
 const { request } = useApi()
 const { modelOptions, fetchEndpoints } = useModels()
 const { getPrefs, setPref, getSettings, saveSettings } = useSettings()
+const { saveCaldav, testCaldav } = useCalendar()
 
 const notice = ref<string | null>(null)
 const saving = ref(false)
@@ -13,6 +14,8 @@ const defaultModel = ref('') // "endpoint_id::model"
 // Server settings (admin) — full dict kept so unedited keys are preserved
 const settings = ref<Record<string, unknown>>({})
 const signupEnabled = ref(false)
+// CalDAV integration (per-user). Password is write-only.
+const caldav = reactive({ url: '', username: '', password: '' })
 
 onMounted(async () => {
   try {
@@ -21,6 +24,9 @@ onMounted(async () => {
     const ep = prefs.default_endpoint_id as string | undefined
     const m = prefs.default_model as string | undefined
     if (ep && m) defaultModel.value = `${ep}::${m}`
+    const cd = (prefs.caldav as { url?: string; username?: string }) || {}
+    caldav.url = cd.url || ''
+    caldav.username = cd.username || ''
     if (isAdmin.value) {
       settings.value = await getSettings()
     }
@@ -30,6 +36,20 @@ onMounted(async () => {
     flash(e instanceof Error ? e.message : 'Failed to load settings')
   }
 })
+
+async function onTestCaldav() {
+  try {
+    const r = await testCaldav({ url: caldav.url, username: caldav.username, password: caldav.password || undefined })
+    flash(r.ok ? 'CalDAV connection OK' : (r.error || 'Connection failed'))
+  } catch (e) { flash(e instanceof Error ? e.message : 'Test failed') }
+}
+async function onSaveCaldav() {
+  try {
+    await saveCaldav({ url: caldav.url, username: caldav.username, password: caldav.password || undefined })
+    caldav.password = ''
+    flash(caldav.url.trim() ? 'CalDAV saved' : 'CalDAV cleared')
+  } catch (e) { flash(e instanceof Error ? e.message : 'Save failed') }
+}
 
 async function saveDefaultModel() {
   const [endpoint_id, model] = defaultModel.value.split('::')
@@ -96,6 +116,23 @@ const field = 'rounded-md border border-border bg-panel2 px-2.5 py-2 text-sm tex
           <button class="rounded-md border border-accent bg-accent px-3 py-1.5 text-sm text-white disabled:opacity-50" :disabled="saving || !defaultModel" @click="saveDefaultModel">Save</button>
         </div>
       </label>
+    </div>
+
+    <!-- CalDAV integration -->
+    <div class="mb-4 rounded-card border border-border bg-panel p-4">
+      <h2 class="mb-1 font-semibold">CalDAV calendar</h2>
+      <p class="mb-3 text-xs text-muted">Sync an external calendar (e.g. iCloud, Nextcloud). Leave URL empty and save to disconnect.</p>
+      <div class="flex flex-col gap-2">
+        <input v-model="caldav.url" :class="field" type="url" placeholder="CalDAV URL (https://…)" />
+        <div class="grid grid-cols-2 gap-2">
+          <input v-model="caldav.username" :class="field" type="text" placeholder="Username" autocomplete="off" />
+          <input v-model="caldav.password" :class="field" type="password" placeholder="Password (leave blank to keep)" autocomplete="new-password" />
+        </div>
+        <div class="flex justify-end gap-2">
+          <button class="rounded-md border border-border px-3 py-1.5 text-sm text-fg hover:border-accent" @click="onTestCaldav">Test</button>
+          <button class="rounded-md border border-accent bg-accent px-3 py-1.5 text-sm text-white" @click="onSaveCaldav">Save</button>
+        </div>
+      </div>
     </div>
 
     <!-- Server settings (admin) -->
