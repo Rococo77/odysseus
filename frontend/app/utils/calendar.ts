@@ -76,3 +76,44 @@ export function eventTime(e: CalendarEvent): string {
   if (Number.isNaN(d.getTime())) return ''
   return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
 }
+
+/** Monday-start week (7 cells) containing the given date. */
+export function buildWeekGrid(date: Date): GridCell[] {
+  const offset = (date.getDay() + 6) % 7 // Monday = 0
+  const start = new Date(date.getFullYear(), date.getMonth(), date.getDate() - offset)
+  const todayKey = dateKey(new Date())
+  const cells: GridCell[] = []
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(start.getTime() + i * MS_DAY)
+    cells.push({ date: d, key: dateKey(d), inMonth: d.getMonth() === date.getMonth(), isToday: dateKey(d) === todayKey })
+  }
+  return cells
+}
+
+/** ISO range [start, end) for the Monday-start week containing `date`. */
+export function weekRange(date: Date): { start: string; end: string } {
+  const cells = buildWeekGrid(date)
+  const start = cells[0]!.date
+  const end = new Date(cells[6]!.date.getTime() + MS_DAY)
+  return { start: start.toISOString(), end: end.toISOString() }
+}
+
+/** ISO range [start, end) for a single day. */
+export function dayRange(date: Date): { start: string; end: string } {
+  const start = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+  return { start: start.toISOString(), end: new Date(start.getTime() + MS_DAY).toISOString() }
+}
+
+/** Events for a given day key, all-day first then by start time. */
+export function dayEvents(map: Map<string, CalendarEvent[]>, key: string): CalendarEvent[] {
+  const list = map.get(key) ?? []
+  return [...list].sort((a, b) => {
+    if (a.all_day !== b.all_day) return a.all_day ? -1 : 1
+    return a.dtstart.localeCompare(b.dtstart)
+  })
+}
+
+/** Local "Mon 9" style label for a week/day column header. */
+export function dayHeader(d: Date): string {
+  return `${WEEKDAYS[(d.getDay() + 6) % 7]} ${d.getDate()}`
+}
