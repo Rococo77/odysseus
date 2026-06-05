@@ -1,0 +1,9 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "//": "Config overlay that bundles the FastAPI backend as a sidecar. Use ONLY after building the binary with scripts/build-sidecar.sh, then: npm run tauri build -- -c src-tauri/tauri.sidecar.conf.json",
+  "bundle": {
+    "externalBin": [
+      "binaries/odysseus-server"
+    ]
+  }
+}

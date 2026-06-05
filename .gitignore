@@ -78,7 +78,7 @@ htmlcov/
 
 # Reports and temp files
 reports/
-tasks/
+/tasks/
 scripts/compound/*.json
 research_data/
 **/search_analytics.json
@@ -92,3 +92,4 @@ docs/windows-port/
 compound.config.json
 *.error.log
 _scratch/
+.coverage

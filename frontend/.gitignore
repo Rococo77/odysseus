@@ -1,0 +1,19 @@
+# Nuxt
+.nuxt/
+.output/
+.data/
+dist
+dist/
+node_modules/
+
+# Tauri / Rust
+src-tauri/target/
+src-tauri/gen/
+
+# Env & misc
+.env
+*.log
+.DS_Store
+
+# Sidecar binaries (built via scripts/build-sidecar.sh)
+src-tauri/binaries/

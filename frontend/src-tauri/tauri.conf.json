@@ -1,0 +1,60 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Odysseus",
+  "version": "0.1.0",
+  "identifier": "app.odysseus.desktop",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:3000",
+    "beforeBuildCommand": "npm run generate",
+    "frontendDist": "../.output/public"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Odysseus",
+        "width": 1100,
+        "height": 760,
+        "minWidth": 720,
+        "minHeight": 480
+      }
+    ],
+    "security": {
+      "csp": {
+        "default-src": "'self'",
+        "script-src": "'self'",
+        "style-src": "'self' 'unsafe-inline'",
+        "img-src": "'self' data: blob: http://127.0.0.1:7000 http://localhost:7000",
+        "font-src": "'self'",
+        "connect-src": "'self' ipc: http://ipc.localhost http://127.0.0.1:7000 http://localhost:7000",
+        "object-src": "'none'",
+        "base-uri": "'self'",
+        "frame-ancestors": "'none'"
+      },
+      "devCsp": {
+        "default-src": "'self'",
+        "script-src": "'self' 'unsafe-inline' 'unsafe-eval'",
+        "style-src": "'self' 'unsafe-inline'",
+        "img-src": "'self' data: blob: http://127.0.0.1:7000 http://localhost:7000 http://localhost:3000",
+        "connect-src": "'self' ipc: http://ipc.localhost ws://localhost:3000 http://localhost:3000 http://127.0.0.1:7000 http://localhost:7000",
+        "object-src": "'none'"
+      }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "endpoints": [
+        "https://releases.example.com/odysseus/{{target}}/{{arch}}/{{current_version}}"
+      ],
+      "pubkey": ""
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/icon.png"
+    ],
+    "createUpdaterArtifacts": true
+  }
+}

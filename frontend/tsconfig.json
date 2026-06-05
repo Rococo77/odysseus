@@ -1,0 +1,11 @@
+{
+  // Root tsconfig delegates to the generated project references that Nuxt
+  // produces in .nuxt/ after `nuxt prepare` (run automatically on postinstall).
+  "files": [],
+  "references": [
+    { "path": "./.nuxt/tsconfig.app.json" },
+    { "path": "./.nuxt/tsconfig.server.json" },
+    { "path": "./.nuxt/tsconfig.shared.json" },
+    { "path": "./.nuxt/tsconfig.node.json" }
+  ]
+}
