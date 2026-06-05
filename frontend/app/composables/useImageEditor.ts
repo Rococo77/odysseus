@@ -37,6 +37,8 @@ export function useImageEditor() {
   const upscale = (image: string, scale: 2 | 4) => op('/api/image/upscale-local', { image, scale })
   const enhanceFace = (image: string) => op('/api/image/enhance-face', { image })
   const harmonize = (image: string, prompt: string, strength: number) => op('/api/image/harmonize', { image, prompt, strength })
+  // mask: base64 grayscale PNG, white = regenerate, black = keep.
+  const inpaint = (image: string, mask: string, prompt: string) => op('/api/image/inpaint', { image, mask, prompt })
 
   /** Replace the gallery image's file in place with the edited bytes. */
   function replaceImage(id: string, b64: string) {
@@ -52,5 +54,5 @@ export function useImageEditor() {
     return request<{ ok: boolean; id?: string }>('/api/gallery/upload', { method: 'POST', body: fd })
   }
 
-  return { toBase64, sharpen, removeBg, denoise, upscale, enhanceFace, harmonize, replaceImage, saveAsNew }
+  return { toBase64, sharpen, removeBg, denoise, upscale, enhanceFace, harmonize, inpaint, replaceImage, saveAsNew }
 }
