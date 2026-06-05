@@ -4,11 +4,16 @@
 export function useApi() {
   const { public: { apiBase } } = useRuntimeConfig()
 
-  function request<T>(path: string, opts: Parameters<typeof $fetch<T>>[1] = {}): Promise<T> {
-    return $fetch<T>(`${apiBase}${path}`, {
-      credentials: 'include',
-      ...opts,
-    })
+  async function request<T>(path: string, opts: Parameters<typeof $fetch<T>>[1] = {}): Promise<T> {
+    try {
+      return await $fetch<T>(`${apiBase}${path}`, {
+        credentials: 'include',
+        ...opts,
+      })
+    } catch (e) {
+      // Surface a clean, user-facing message everywhere (see utils/apiError).
+      throw new Error(extractApiError(e))
+    }
   }
 
   // Absolute URL for media/static resources (e.g. <img src>). Same-origin on

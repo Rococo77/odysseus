@@ -201,7 +201,16 @@ parity, the legacy route is flipped to redirect there, then the old code is dele
 - `npm run generate` — static build succeeds (Chat, Tasks, Sessions, Memory,
   Notes, Gallery, Calendar prerendered; Tailwind utilities from the `@theme` palette).
 - `npm run typecheck` — passes (TypeScript, no errors).
+- `npm run test` — Vitest unit tests for the pure helpers (28 tests) pass.
 - `npm run tauri build --no-bundle` — release Rust shell compiles against
-  webkit2gtk and produces a native binary (sidecar spawn code included).
+  webkit2gtk and produces a native binary (sidecar/menu/tray/updater included).
 - CORS preflight — Tauri origins allowed with credentials; others rejected.
+
+## UX niceties
+
+- **Keyboard nav**: Ctrl/Cmd + 1..7 jump between the top-bar pages
+  (`composables/useShortcuts.ts`); the shortcut shows in each link's tooltip.
+- **Unified errors**: `useApi` normalizes every failure (FastAPI
+  `detail`/`message`/422 arrays, auth/404/5xx, offline) into a clean message via
+  `utils/apiError.ts`, so all pages surface meaningful errors.
 ```

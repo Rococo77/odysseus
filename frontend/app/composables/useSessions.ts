@@ -56,14 +56,9 @@ export function useSessions() {
   }
 
   async function deleteSession(id: string) {
-    try {
-      await request(`/api/session/${id}`, { method: 'DELETE' })
-      sessions.value = sessions.value.filter(s => s.id !== id)
-    } catch (e: unknown) {
-      // Backend returns 403 {error:"SESSION_STARRED", message:"..."} for starred.
-      const data = (e as { data?: { message?: string; error?: string } })?.data
-      throw new Error(data?.message || data?.error || 'Delete failed')
-    }
+    // useApi already normalizes the 403 SESSION_STARRED body into the message.
+    await request(`/api/session/${id}`, { method: 'DELETE' })
+    sessions.value = sessions.value.filter(s => s.id !== id)
   }
 
   async function fetchHistory(id: string): Promise<ChatMessage[]> {

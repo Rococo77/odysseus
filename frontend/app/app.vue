@@ -1,15 +1,21 @@
+<script setup lang="ts">
+// Register global Ctrl/Cmd+1..7 page navigation.
+useShortcuts()
+const isMac = import.meta.client && /Mac|iPhone|iPad/.test(navigator.platform)
+const mod = computed(() => (isMac ? '⌘' : 'Ctrl'))
+</script>
+
 <template>
   <div class="app-shell">
     <header class="topbar">
       <span class="brand">Odysseus</span>
       <nav class="nav">
-        <NuxtLink to="/chat">Chat</NuxtLink>
-        <NuxtLink to="/tasks">Tasks</NuxtLink>
-        <NuxtLink to="/sessions">Sessions</NuxtLink>
-        <NuxtLink to="/memory">Memory</NuxtLink>
-        <NuxtLink to="/notes">Notes</NuxtLink>
-        <NuxtLink to="/gallery">Gallery</NuxtLink>
-        <NuxtLink to="/calendar">Calendar</NuxtLink>
+        <NuxtLink
+          v-for="(item, i) in NAV_SHORTCUTS"
+          :key="item.to"
+          :to="item.to"
+          :title="`${item.label} (${mod}+${i + 1})`"
+        >{{ item.label }}</NuxtLink>
       </nav>
       <span class="badge">desktop · pilot</span>
     </header>
