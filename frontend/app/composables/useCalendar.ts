@@ -6,7 +6,7 @@ import type {
 // (the backend expands recurring occurrences) plus calendar list and event
 // CRUD. CalDAV sync, import/export and LLM quick-parse stay in the legacy app.
 export function useCalendar() {
-  const { request } = useApi()
+  const { request, mediaUrl } = useApi()
 
   const events = useState<CalendarEvent[]>('cal-events', () => [])
   const calendars = useState<Calendar[]>('cal-calendars', () => [])
@@ -46,8 +46,40 @@ export function useCalendar() {
     return request(`/api/calendar/events/${encodeURIComponent(uid)}`, { method: 'DELETE' })
   }
 
+  /** Natural-language → structured event fields (does not create it). */
+  function quickParse(text: string) {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
+    return request<{ ok: boolean; event?: Partial<EventCreate>; error?: string }>(
+      '/api/calendar/quick-parse', { method: 'POST', body: { text, tz } },
+    )
+  }
+
+  /** Import events from an .ics file into a (new or existing) calendar. */
+  function importIcs(file: File, calendarName = '') {
+    const fd = new FormData()
+    fd.set('file', file, file.name)
+    if (calendarName) fd.set('calendar_name', calendarName)
+    return request<Record<string, unknown>>('/api/calendar/import', { method: 'POST', body: fd })
+  }
+
+  /** Download a calendar as an .ics file. */
+  async function exportIcs(calId: string, name = 'calendar') {
+    const res = await fetch(mediaUrl(`/api/calendar/export/${calId}`), { credentials: 'include' })
+    if (!res.ok) throw new Error(`Export failed (${res.status})`)
+    const blob = await res.blob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${name}.ics`
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
+  }
+
   return {
     events, calendars, activeCalendar, loading, error,
     fetchCalendars, fetchEvents, createEvent, updateEvent, deleteEvent,
+    quickParse, importIcs, exportIcs,
   }
 }

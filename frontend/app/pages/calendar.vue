@@ -1,15 +1,54 @@
 <script setup lang="ts">
 import type { CalendarEvent } from '~/types/calendar'
 
-// Sixth migrated page (Tailwind). Month grid with event CRUD via a modal and a
-// per-calendar filter. The backend expands recurring occurrences for the
-// visible range. CalDAV sync, import/export and LLM quick-parse stay legacy.
+// Month grid with event CRUD via a modal, per-calendar filter, natural-language
+// quick-add and .ics import/export. The backend expands recurring occurrences
+// for the visible range. CalDAV sync and week/year views stay legacy.
 const {
   events, calendars, activeCalendar, loading, error,
-  fetchCalendars, fetchEvents,
+  fetchCalendars, fetchEvents, createEvent, quickParse, importIcs, exportIcs,
 } = useCalendar()
 
 const cursor = ref(new Date())
+const quickText = ref('')
+const quickBusy = ref(false)
+const banner = ref<string | null>(null)
+const icsInput = ref<HTMLInputElement | null>(null)
+
+function notify(msg: string) {
+  banner.value = msg
+  setTimeout(() => (banner.value = null), 3000)
+}
+
+async function onQuickAdd() {
+  const text = quickText.value.trim()
+  if (!text) return
+  quickBusy.value = true
+  try {
+    const res = await quickParse(text)
+    if (!res.ok || !res.event) { notify(res.error || 'Could not parse'); return }
+    await createEvent({ ...res.event, calendar_href: activeCalendar.value || calendars.value[0]?.href || null } as Parameters<typeof createEvent>[0])
+    quickText.value = ''
+    await reload()
+    notify('Event added')
+  } catch (e) { notify(e instanceof Error ? e.message : 'Quick add failed') }
+  finally { quickBusy.value = false }
+}
+
+async function onImport(e: Event) {
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
+  input.value = ''
+  if (!file) return
+  try { await importIcs(file); await fetchCalendars(); await reload(); notify('Imported') }
+  catch (err) { notify(err instanceof Error ? err.message : 'Import failed') }
+}
+
+async function onExport() {
+  const cal = calendars.value.find(c => c.href === activeCalendar.value) || calendars.value[0]
+  if (!cal) { notify('No calendar to export'); return }
+  try { await exportIcs(cal.href, cal.name) } catch (e) { notify(e instanceof Error ? e.message : 'Export failed') }
+}
 const viewYear = computed(() => cursor.value.getFullYear())
 const viewMonth = computed(() => cursor.value.getMonth())
 
@@ -69,6 +108,25 @@ async function onSaved() { closeModal(); await reload() }
       </div>
     </div>
 
+    <!-- Quick-add + ICS import/export -->
+    <div class="mb-3 flex flex-wrap items-center gap-2" :class="{ 'opacity-60 pointer-events-none': quickBusy }">
+      <input
+        v-model="quickText"
+        type="text"
+        placeholder="Add via text — e.g. “lunch with Sara friday 1pm downtown”"
+        class="min-w-56 flex-1 rounded-md border border-border bg-panel2 px-2.5 py-1.5 text-sm text-fg outline-none focus:border-accent"
+        @keydown.enter.prevent="onQuickAdd"
+      />
+      <button class="rounded-md border border-accent bg-accent px-3 py-1.5 text-sm text-white disabled:opacity-50" :disabled="!quickText.trim()" @click="onQuickAdd">Quick add</button>
+      <button class="rounded-md border border-border px-2.5 py-1.5 text-sm text-fg hover:border-accent" @click="icsInput?.click()">Import .ics</button>
+      <button class="rounded-md border border-border px-2.5 py-1.5 text-sm text-fg hover:border-accent" @click="onExport">Export .ics</button>
+      <input ref="icsInput" type="file" accept=".ics" class="hidden" @change="onImport" />
+    </div>
+
+    <Transition name="fade">
+      <p v-if="banner" class="mb-3 rounded-md border border-border bg-panel2 px-3 py-1.5 text-sm">{{ banner }}</p>
+    </Transition>
+
     <p v-if="error" class="mb-3 text-sm text-red">{{ error }}</p>
 
     <!-- Weekday header -->
@@ -117,3 +175,8 @@ async function onSaved() { closeModal(); await reload() }
     />
   </section>
 </template>
+
+<style scoped>
+.fade-enter-active, .fade-leave-active { transition: opacity 0.2s; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
+</style>
