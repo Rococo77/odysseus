@@ -108,7 +108,7 @@ function flash(msg: string) {
         <button class="rounded-md border border-accent bg-accent px-3 py-1.5 text-sm text-white disabled:opacity-50" :disabled="uploading" @click="fileInput?.click()">
           {{ uploading ? 'Uploading…' : '⬆ Upload' }}
         </button>
-        <input ref="fileInput" type="file" accept="image/*,video/*" multiple class="hidden" @change="onFiles" />
+        <input ref="fileInput" type="file" accept="image/*,video/*" multiple class="hidden" @change="onFiles" >
       </div>
     </div>
 
@@ -121,7 +121,7 @@ function flash(msg: string) {
 
     <!-- Toolbar -->
     <div class="mb-3 flex flex-wrap items-center gap-2">
-      <input v-model="search" type="search" placeholder="Search prompt or tags…" class="min-w-48 flex-1 rounded-md border border-border bg-panel2 px-2.5 py-1.5 text-sm text-fg outline-none focus:border-accent" />
+      <input v-model="search" type="search" placeholder="Search prompt or tags…" class="min-w-48 flex-1 rounded-md border border-border bg-panel2 px-2.5 py-1.5 text-sm text-fg outline-none focus:border-accent" >
       <select :value="filters.sort" class="rounded-md border border-border bg-panel2 px-2 py-1.5 text-sm text-fg outline-none focus:border-accent" @change="setFilters({ sort: ($event.target as HTMLSelectElement).value as GallerySort })">
         <option value="recent">Recent</option>
         <option value="oldest">Oldest</option>

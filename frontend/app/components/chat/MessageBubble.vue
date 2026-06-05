@@ -55,7 +55,7 @@ function thumb(id: string) {
       <!-- Attachments -->
       <div v-if="message.attachments?.length" class="mb-2 flex flex-wrap gap-1.5">
         <template v-for="a in message.attachments" :key="a.id">
-          <img v-if="a.mime?.startsWith('image/')" :src="thumb(a.id)" :alt="a.name" :title="a.name" class="h-16 w-16 rounded border border-border object-cover" />
+          <img v-if="a.mime?.startsWith('image/')" :src="thumb(a.id)" :alt="a.name" :title="a.name" class="h-16 w-16 rounded border border-border object-cover" >
           <span v-else class="rounded-md border border-border bg-panel2 px-2 py-1 text-xs text-fg" :title="a.name">📎 {{ a.name }}</span>
         </template>
       </div>
@@ -86,7 +86,7 @@ function thumb(id: string) {
             <span v-if="t.exit_code != null" :class="t.exit_code === 0 ? 'text-green' : 'text-red'"> · exit {{ t.exit_code }}</span>
           </summary>
           <pre v-if="t.output" class="mt-1 max-h-48 overflow-auto whitespace-pre-wrap break-words text-[11px] text-fg/80">{{ t.output }}</pre>
-          <img v-if="t.image_url" :src="imgSrc(t.image_url)" class="mt-1 max-h-64 rounded" />
+          <img v-if="t.image_url" :src="imgSrc(t.image_url)" class="mt-1 max-h-64 rounded" >
         </details>
       </div>
 
@@ -104,7 +104,8 @@ function thumb(id: string) {
         </div>
       </div>
 
-      <!-- Rendered markdown -->
+      <!-- Rendered markdown — sanitized by renderMarkdown (DOMPurify) -->
+      <!-- eslint-disable-next-line vue/no-v-html -->
       <div v-else class="md text-sm leading-relaxed text-fg" v-html="html" />
 
       <span v-if="message.streaming" class="ml-0.5 inline-block h-3.5 w-1.5 animate-pulse bg-accent align-middle" />

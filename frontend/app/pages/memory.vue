@@ -168,7 +168,7 @@ function flash(msg: string) {
         </select>
         <button class="rounded-md border border-border px-2.5 py-1.5 text-sm text-fg hover:border-accent disabled:opacity-50" :disabled="!toolSession" @click="onExtract">Extract</button>
         <button class="rounded-md border border-border px-2.5 py-1.5 text-sm text-fg hover:border-accent disabled:opacity-50" :disabled="!toolSession" @click="fileInput?.click()">Import file</button>
-        <input ref="fileInput" type="file" accept=".txt,.md,.pdf,.csv,.log,.json,.py,.js,.html" class="hidden" @change="onImportFile" />
+        <input ref="fileInput" type="file" accept=".txt,.md,.pdf,.csv,.log,.json,.py,.js,.html" class="hidden" @change="onImportFile" >
       </div>
 
       <!-- Suggestions review -->
@@ -185,7 +185,7 @@ function flash(msg: string) {
         </div>
         <ul class="flex max-h-60 flex-col gap-1 overflow-auto">
           <li v-for="(s, i) in suggestions" :key="i" class="flex items-start gap-2 text-sm">
-            <input type="checkbox" class="mt-1 accent-accent" :checked="pickedSug.includes(s)" @change="toggleSug(s)" />
+            <input type="checkbox" class="mt-1 accent-accent" :checked="pickedSug.includes(s)" @change="toggleSug(s)" >
             <span :class="pickedSug.includes(s) ? 'text-fg' : 'text-muted'">{{ s }}</span>
           </li>
         </ul>
@@ -194,7 +194,7 @@ function flash(msg: string) {
 
     <!-- Toolbar -->
     <div class="mb-3 flex flex-wrap items-center gap-2">
-      <input v-model="query" type="search" placeholder="Search…" class="min-w-40 flex-1 rounded-md border border-border bg-panel2 px-2.5 py-1.5 text-sm text-fg outline-none focus:border-accent" />
+      <input v-model="query" type="search" placeholder="Search…" class="min-w-40 flex-1 rounded-md border border-border bg-panel2 px-2.5 py-1.5 text-sm text-fg outline-none focus:border-accent" >
       <button class="rounded-md border border-border px-2.5 py-1.5 text-sm hover:border-accent" @click="sortNewest = !sortNewest">
         {{ sortNewest ? 'Newest' : 'Oldest' }}
       </button>

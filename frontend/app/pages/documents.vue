@@ -115,7 +115,7 @@ const field = 'rounded-md border border-border bg-panel2 px-2.5 py-1.5 text-sm t
     <aside class="flex flex-col overflow-hidden rounded-card border border-border bg-panel">
       <div class="flex flex-col gap-2 border-b border-border p-2">
         <div class="flex gap-2">
-          <input v-model="search" type="search" placeholder="Search…" :class="[field, 'flex-1']" />
+          <input v-model="search" type="search" placeholder="Search…" :class="[field, 'flex-1']" >
           <button class="rounded-md border border-accent bg-accent px-2.5 py-1.5 text-sm text-white" @click="onNew">+ New</button>
         </div>
         <div class="flex gap-2">
@@ -130,7 +130,7 @@ const field = 'rounded-md border border-border bg-panel2 px-2.5 py-1.5 text-sm t
             <option value="alpha">A–Z</option>
           </select>
         </div>
-        <label class="flex items-center gap-1.5 text-xs text-muted"><input v-model="showArchived" type="checkbox" class="accent-accent" /> Archived</label>
+        <label class="flex items-center gap-1.5 text-xs text-muted"><input v-model="showArchived" type="checkbox" class="accent-accent" > Archived</label>
       </div>
       <div class="flex-1 overflow-auto p-1.5">
         <button
@@ -153,7 +153,7 @@ const field = 'rounded-md border border-border bg-panel2 px-2.5 py-1.5 text-sm t
       <div v-if="!current" class="flex flex-1 items-center justify-center text-muted">Select or create a document.</div>
       <template v-else>
         <div class="flex flex-wrap items-center gap-2 border-b border-border p-2">
-          <input v-model="current.title" :class="[field, 'min-w-40 flex-1 font-medium']" placeholder="Title" @change="onMeta" />
+          <input v-model="current.title" :class="[field, 'min-w-40 flex-1 font-medium']" placeholder="Title" @change="onMeta" >
           <select v-model="current.language" :class="field" @change="onMeta">
             <option v-for="l in DOC_LANGUAGES" :key="l" :value="l">{{ l }}</option>
           </select>
@@ -163,6 +163,7 @@ const field = 'rounded-md border border-border bg-panel2 px-2.5 py-1.5 text-sm t
           <button class="rounded-md border border-border px-2.5 py-1.5 text-sm text-red hover:border-red" @click="onDelete">Delete</button>
         </div>
         <div class="min-h-0 flex-1 overflow-auto">
+          <!-- eslint-disable-next-line vue/no-v-html -->
           <div v-if="preview && isMarkdown" class="md p-4 text-sm leading-relaxed text-fg" v-html="renderMarkdown(draft)" />
           <textarea
             v-else

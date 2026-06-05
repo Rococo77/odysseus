@@ -160,14 +160,14 @@ function flash(msg: string) {
       <!-- ACTIVE VIEW -->
       <template v-if="view === 'active'">
         <div class="mb-3.5 flex items-center gap-2">
-          <input v-model="query" type="search" placeholder="Filter by name…" class="flex-1 rounded-md border border-border bg-panel2 px-2.5 py-1.5 text-sm text-fg outline-none focus:border-accent" />
+          <input v-model="query" type="search" placeholder="Filter by name…" class="flex-1 rounded-md border border-border bg-panel2 px-2.5 py-1.5 text-sm text-fg outline-none focus:border-accent" >
           <select v-model="sort" class="rounded-md border border-border bg-panel2 px-2 py-1.5 text-sm text-fg outline-none focus:border-accent">
             <option value="active">Last active</option>
             <option value="newest">Newest</option>
             <option value="alpha">A–Z</option>
           </select>
           <label class="flex items-center gap-1.5 text-xs text-muted">
-            <input v-model="grouped" type="checkbox" class="accent-accent" /> Folders
+            <input v-model="grouped" type="checkbox" class="accent-accent" > Folders
           </label>
         </div>
 
@@ -192,7 +192,7 @@ function flash(msg: string) {
       <!-- ARCHIVED VIEW -->
       <template v-else>
         <div class="mb-3.5 flex items-center gap-2">
-          <input v-model="archivedQuery" type="search" placeholder="Search archived…" class="flex-1 rounded-md border border-border bg-panel2 px-2.5 py-1.5 text-sm text-fg outline-none focus:border-accent" />
+          <input v-model="archivedQuery" type="search" placeholder="Search archived…" class="flex-1 rounded-md border border-border bg-panel2 px-2.5 py-1.5 text-sm text-fg outline-none focus:border-accent" >
           <select v-model="archivedSort" class="rounded-md border border-border bg-panel2 px-2 py-1.5 text-sm text-fg outline-none focus:border-accent">
             <option value="recent">Recent</option>
             <option value="oldest">Oldest</option>

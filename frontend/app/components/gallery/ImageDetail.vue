@@ -38,7 +38,7 @@ const aiTags = computed(() => (props.image.ai_tags || '').split(',').map(t => t.
     <div class="flex max-h-[90vh] w-full max-w-4xl overflow-hidden rounded-card border border-border bg-panel" :class="{ 'opacity-60 pointer-events-none': busy }">
       <!-- Image -->
       <div class="flex min-w-0 flex-1 items-center justify-center bg-black/40 p-2">
-        <img :src="src" :alt="image.prompt || image.filename" class="max-h-[86vh] max-w-full object-contain" />
+        <img :src="src" :alt="image.prompt || image.filename" class="max-h-[86vh] max-w-full object-contain" >
       </div>
 
       <!-- Side panel -->
@@ -50,12 +50,12 @@ const aiTags = computed(() => (props.image.ai_tags || '').split(',').map(t => t.
 
         <label class="flex flex-col gap-1 text-xs text-muted">
           <span>Name</span>
-          <input v-model="name" class="rounded-md border border-border bg-panel2 px-2 py-1 text-sm text-fg outline-none focus:border-accent" @blur="saveName" @keydown.enter="saveName" />
+          <input v-model="name" class="rounded-md border border-border bg-panel2 px-2 py-1 text-sm text-fg outline-none focus:border-accent" @blur="saveName" @keydown.enter="saveName" >
         </label>
 
         <label class="flex flex-col gap-1 text-xs text-muted">
           <span>Tags (comma-separated)</span>
-          <input v-model="tags" placeholder="e.g. landscape, blue" class="rounded-md border border-border bg-panel2 px-2 py-1 text-sm text-fg outline-none focus:border-accent" @blur="saveTags" @keydown.enter="saveTags" />
+          <input v-model="tags" placeholder="e.g. landscape, blue" class="rounded-md border border-border bg-panel2 px-2 py-1 text-sm text-fg outline-none focus:border-accent" @blur="saveTags" @keydown.enter="saveTags" >
         </label>
 
         <div v-if="aiTags.length" class="flex flex-col gap-1 text-xs text-muted">

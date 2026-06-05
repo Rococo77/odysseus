@@ -40,7 +40,7 @@ const cardStyle = computed(() => (props.note.color ? { backgroundColor: props.no
           :checked="item.done"
           class="accent-accent"
           @change="emit('toggleItem', note.id, i)"
-        />
+        >
         <span :class="item.done ? 'text-muted line-through' : 'text-fg'">{{ item.text }}</span>
       </li>
     </ul>

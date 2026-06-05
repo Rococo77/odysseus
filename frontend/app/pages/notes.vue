@@ -120,7 +120,7 @@ function flash(msg: string) {
     </Transition>
 
     <div class="mb-3 flex flex-wrap items-center gap-2">
-      <input v-model="query" type="search" placeholder="Search…" class="min-w-40 flex-1 rounded-md border border-border bg-panel2 px-2.5 py-1.5 text-sm text-fg outline-none focus:border-accent" />
+      <input v-model="query" type="search" placeholder="Search…" class="min-w-40 flex-1 rounded-md border border-border bg-panel2 px-2.5 py-1.5 text-sm text-fg outline-none focus:border-accent" >
     </div>
     <div v-if="labels.length" class="mb-4 flex flex-wrap gap-1.5">
       <button class="rounded-full border px-2.5 py-0.5 text-xs" :class="activeLabel === null ? 'border-accent text-accent' : 'border-border text-muted hover:text-fg'" @click="activeLabel = null">All</button>

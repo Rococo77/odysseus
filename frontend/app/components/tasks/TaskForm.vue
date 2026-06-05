@@ -41,7 +41,7 @@ function onSubmit() {
 
     <label :class="labelCls">
       <span>Name <em class="opacity-70">(optional)</em></span>
-      <input v-model="form.name" type="text" placeholder="Auto-generated if empty" :class="field" />
+      <input v-model="form.name" type="text" placeholder="Auto-generated if empty" :class="field" >
     </label>
 
     <label :class="labelCls">
@@ -68,7 +68,7 @@ function onSubmit() {
     <div class="grid grid-cols-2 gap-3">
       <label v-if="form.schedule !== 'cron'" :class="labelCls">
         <span>Time (UTC)</span>
-        <input v-model="form.scheduled_time" type="time" :class="field" />
+        <input v-model="form.scheduled_time" type="time" :class="field" >
       </label>
 
       <label v-if="form.schedule === 'weekly'" :class="labelCls">
@@ -80,17 +80,17 @@ function onSubmit() {
 
       <label v-if="form.schedule === 'monthly'" :class="labelCls">
         <span>Day of month</span>
-        <input v-model.number="form.scheduled_day" type="number" min="1" max="31" :class="field" />
+        <input v-model.number="form.scheduled_day" type="number" min="1" max="31" :class="field" >
       </label>
 
       <label v-if="form.schedule === 'cron'" :class="[labelCls, 'col-span-2']">
         <span>Cron expression</span>
-        <input v-model="form.cron_expression" type="text" placeholder="*/5 * * * *" :class="field" />
+        <input v-model="form.cron_expression" type="text" placeholder="*/5 * * * *" :class="field" >
       </label>
     </div>
 
     <label class="flex items-center gap-2 text-xs text-muted">
-      <input v-model="form.notifications_enabled" type="checkbox" class="accent-accent" />
+      <input v-model="form.notifications_enabled" type="checkbox" class="accent-accent" >
       <span>Notify on completion</span>
     </label>
 

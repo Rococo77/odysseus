@@ -43,7 +43,7 @@ const actionBtn = 'rounded-md border border-border bg-panel2 px-1.5 py-0.5 leadi
       class="shrink-0 accent-accent"
       :checked="selected"
       @click.stop="emit('toggleSelect', session.id)"
-    />
+    >
     <button
       class="shrink-0 px-0.5 text-[15px] leading-none"
       :class="session.is_important ? 'text-amber' : 'text-muted hover:text-fg'"
@@ -61,7 +61,7 @@ const actionBtn = 'rounded-md border border-border bg-panel2 px-1.5 py-0.5 leadi
         @keydown.enter.prevent="commitRename"
         @keydown.esc.prevent="editing = false"
         @blur="commitRename"
-      />
+      >
       <span v-else class="block truncate font-semibold" @dblclick.stop="startRename">{{ session.name || '(untitled)' }}</span>
 
       <div class="mt-1 flex flex-wrap gap-1.5">

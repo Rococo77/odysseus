@@ -84,7 +84,7 @@ const field = 'rounded-md border border-border bg-panel2 px-2.5 py-2 text-sm tex
             </div>
             <div v-if="!u.is_admin" class="mt-2 flex flex-wrap gap-x-4 gap-y-1">
               <label v-for="k in PRIVILEGE_KEYS" :key="k" class="flex items-center gap-1.5 text-xs text-muted">
-                <input type="checkbox" class="accent-accent" :checked="u.privileges[k] === true" @change="togglePriv(u, k, ($event.target as HTMLInputElement).checked)" />
+                <input type="checkbox" class="accent-accent" :checked="u.privileges[k] === true" @change="togglePriv(u, k, ($event.target as HTMLInputElement).checked)" >
                 {{ k.replace('can_', '').replace(/_/g, ' ') }}
               </label>
             </div>
@@ -92,11 +92,11 @@ const field = 'rounded-md border border-border bg-panel2 px-2.5 py-2 text-sm tex
           <p v-if="!users.length" class="text-sm text-muted">No users.</p>
         </div>
 
-        <hr class="my-3 border-border" />
+        <hr class="my-3 border-border" >
         <div class="flex flex-wrap items-end gap-2">
-          <input v-model="nu.username" :class="field" placeholder="New username" />
-          <input v-model="nu.password" :class="field" type="password" placeholder="Password (8+)" />
-          <label class="flex items-center gap-1.5 text-xs text-muted"><input v-model="nu.is_admin" type="checkbox" class="accent-accent" /> admin</label>
+          <input v-model="nu.username" :class="field" placeholder="New username" >
+          <input v-model="nu.password" :class="field" type="password" placeholder="Password (8+)" >
+          <label class="flex items-center gap-1.5 text-xs text-muted"><input v-model="nu.is_admin" type="checkbox" class="accent-accent" > admin</label>
           <button class="rounded-md border border-accent bg-accent px-3 py-2 text-sm text-white disabled:opacity-50" :disabled="busy" @click="onCreate">Add user</button>
         </div>
       </div>

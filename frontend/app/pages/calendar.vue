@@ -143,12 +143,12 @@ async function onSaved() { closeModal(); await reload() }
         placeholder="Add via text — e.g. “lunch with Sara friday 1pm downtown”"
         class="min-w-56 flex-1 rounded-md border border-border bg-panel2 px-2.5 py-1.5 text-sm text-fg outline-none focus:border-accent"
         @keydown.enter.prevent="onQuickAdd"
-      />
+      >
       <button class="rounded-md border border-accent bg-accent px-3 py-1.5 text-sm text-white disabled:opacity-50" :disabled="!quickText.trim()" @click="onQuickAdd">Quick add</button>
       <button class="rounded-md border border-border px-2.5 py-1.5 text-sm text-fg hover:border-accent" @click="icsInput?.click()">Import .ics</button>
       <button class="rounded-md border border-border px-2.5 py-1.5 text-sm text-fg hover:border-accent" @click="onExport">Export .ics</button>
       <button class="rounded-md border border-border px-2.5 py-1.5 text-sm text-fg hover:border-accent" @click="onSync">Sync</button>
-      <input ref="icsInput" type="file" accept=".ics" class="hidden" @change="onImport" />
+      <input ref="icsInput" type="file" accept=".ics" class="hidden" @change="onImport" >
     </div>
 
     <Transition name="fade">

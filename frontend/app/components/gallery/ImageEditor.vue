@@ -129,7 +129,7 @@ const btn = 'rounded-md border border-border bg-panel2 px-2.5 py-1.5 text-sm tex
       <!-- Preview -->
       <div class="relative flex min-w-0 flex-1 items-center justify-center bg-black/40 p-2">
         <div class="relative inline-block">
-          <img v-if="src" ref="imgEl" :src="src" class="block max-h-[88vh] max-w-full" @load="inpaintMode && initCanvases()" />
+          <img v-if="src" ref="imgEl" :src="src" class="block max-h-[88vh] max-w-full" @load="inpaintMode && initCanvases()" >
           <canvas
             v-show="inpaintMode"
             ref="overlay"
@@ -157,14 +157,14 @@ const btn = 'rounded-md border border-border bg-panel2 px-2.5 py-1.5 text-sm tex
           <div class="flex flex-col gap-1">
             <label class="flex items-center justify-between text-xs text-muted">Sharpen <span>{{ sharpenAmount }}</span></label>
             <div class="flex gap-2">
-              <input v-model.number="sharpenAmount" type="range" min="0" max="100" class="flex-1 accent-accent" />
+              <input v-model.number="sharpenAmount" type="range" min="0" max="100" class="flex-1 accent-accent" >
               <button :class="btn" :disabled="busy" @click="apply('Sharpening…', img => sharpen(img, sharpenAmount))">Apply</button>
             </div>
           </div>
           <div class="flex flex-col gap-1">
             <label class="flex items-center justify-between text-xs text-muted">Denoise <span>{{ denoiseStrength.toFixed(2) }}</span></label>
             <div class="flex gap-2">
-              <input v-model.number="denoiseStrength" type="range" min="0" max="1" step="0.05" class="flex-1 accent-accent" />
+              <input v-model.number="denoiseStrength" type="range" min="0" max="1" step="0.05" class="flex-1 accent-accent" >
               <button :class="btn" :disabled="busy" @click="apply('Denoising…', img => denoise(img, denoiseStrength))">Apply</button>
             </div>
           </div>
@@ -181,9 +181,9 @@ const btn = 'rounded-md border border-border bg-panel2 px-2.5 py-1.5 text-sm tex
           </div>
           <div class="flex flex-col gap-1 border-t border-border pt-2">
             <label class="text-xs text-muted">Harmonize (img2img · needs diffusion server)</label>
-            <input v-model="harmonizePrompt" placeholder="prompt (optional)" class="rounded-md border border-border bg-panel2 px-2 py-1.5 text-sm text-fg outline-none focus:border-accent" />
+            <input v-model="harmonizePrompt" placeholder="prompt (optional)" class="rounded-md border border-border bg-panel2 px-2 py-1.5 text-sm text-fg outline-none focus:border-accent" >
             <div class="flex items-center gap-2">
-              <input v-model.number="harmonizeStrength" type="range" min="0.05" max="0.95" step="0.05" class="flex-1 accent-accent" />
+              <input v-model.number="harmonizeStrength" type="range" min="0.05" max="0.95" step="0.05" class="flex-1 accent-accent" >
               <span class="w-8 text-xs text-muted">{{ harmonizeStrength.toFixed(2) }}</span>
               <button :class="btn" :disabled="busy" @click="apply('Harmonizing…', img => harmonize(img, harmonizePrompt, harmonizeStrength))">Run</button>
             </div>
@@ -198,8 +198,8 @@ const btn = 'rounded-md border border-border bg-panel2 px-2.5 py-1.5 text-sm tex
           <template v-if="inpaintMode">
             <p class="text-xs text-muted">Paint over the area to replace, describe what to put there, then run.</p>
             <label class="flex items-center justify-between text-xs text-muted">Brush <span>{{ brush }}px</span></label>
-            <input v-model.number="brush" type="range" min="5" max="120" class="accent-accent" />
-            <input v-model="inpaintPrompt" placeholder="what to draw here" class="rounded-md border border-border bg-panel2 px-2 py-1.5 text-sm text-fg outline-none focus:border-accent" />
+            <input v-model.number="brush" type="range" min="5" max="120" class="accent-accent" >
+            <input v-model="inpaintPrompt" placeholder="what to draw here" class="rounded-md border border-border bg-panel2 px-2 py-1.5 text-sm text-fg outline-none focus:border-accent" >
             <div class="flex gap-2">
               <button :class="[btn, 'flex-1']" :disabled="busy || !hasMask" @click="resetMask">Clear mask</button>
               <button class="flex-1 rounded-md border border-accent bg-accent px-3 py-1.5 text-sm text-white disabled:opacity-50" :disabled="busy || !hasMask" @click="runInpaint">Run inpaint</button>

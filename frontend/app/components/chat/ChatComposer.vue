@@ -92,7 +92,7 @@ function onKeydown(e: KeyboardEvent) {
         title="Attach files"
         @click="fileInput?.click()"
       >📎</button>
-      <input ref="fileInput" type="file" multiple class="hidden" @change="onFiles" />
+      <input ref="fileInput" type="file" multiple class="hidden" @change="onFiles" >
 
       <textarea
         v-model="text"

@@ -1,4 +1,4 @@
-import type { Session, ChatMessage, ArchivedSession, ArchivedResponse } from '~/types/sessions'
+import type { Session, ChatMessage, ArchivedResponse } from '~/types/sessions'
 
 // Reactive store + typed client for the /api/session(s) endpoints. Mirrors the
 // operations in the legacy static/js/sessions.js for the active session list.

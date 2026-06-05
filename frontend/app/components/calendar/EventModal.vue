@@ -91,26 +91,26 @@ async function remove() {
         <button class="text-muted hover:text-fg" @click="emit('close')">✕</button>
       </div>
 
-      <input v-model="summary" placeholder="Title" class="mb-2 w-full rounded-md border border-border bg-panel2 px-2.5 py-2 text-sm font-medium text-fg outline-none focus:border-accent" />
+      <input v-model="summary" placeholder="Title" class="mb-2 w-full rounded-md border border-border bg-panel2 px-2.5 py-2 text-sm font-medium text-fg outline-none focus:border-accent" >
 
       <label class="mb-2 flex items-center gap-2 text-sm text-muted">
-        <input v-model="allDay" type="checkbox" class="accent-accent" /> All day
+        <input v-model="allDay" type="checkbox" class="accent-accent" > All day
       </label>
 
       <div class="mb-2 grid grid-cols-2 gap-2">
         <label class="flex flex-col gap-1 text-xs text-muted">
           <span>Start</span>
-          <input v-if="allDay" v-model="dateStart" type="date" class="rounded-md border border-border bg-panel2 px-2 py-1.5 text-sm text-fg outline-none focus:border-accent" />
-          <input v-else v-model="timeStart" type="datetime-local" class="rounded-md border border-border bg-panel2 px-2 py-1.5 text-sm text-fg outline-none focus:border-accent" />
+          <input v-if="allDay" v-model="dateStart" type="date" class="rounded-md border border-border bg-panel2 px-2 py-1.5 text-sm text-fg outline-none focus:border-accent" >
+          <input v-else v-model="timeStart" type="datetime-local" class="rounded-md border border-border bg-panel2 px-2 py-1.5 text-sm text-fg outline-none focus:border-accent" >
         </label>
         <label class="flex flex-col gap-1 text-xs text-muted">
           <span>End</span>
-          <input v-if="allDay" v-model="dateEnd" type="date" class="rounded-md border border-border bg-panel2 px-2 py-1.5 text-sm text-fg outline-none focus:border-accent" />
-          <input v-else v-model="timeEnd" type="datetime-local" class="rounded-md border border-border bg-panel2 px-2 py-1.5 text-sm text-fg outline-none focus:border-accent" />
+          <input v-if="allDay" v-model="dateEnd" type="date" class="rounded-md border border-border bg-panel2 px-2 py-1.5 text-sm text-fg outline-none focus:border-accent" >
+          <input v-else v-model="timeEnd" type="datetime-local" class="rounded-md border border-border bg-panel2 px-2 py-1.5 text-sm text-fg outline-none focus:border-accent" >
         </label>
       </div>
 
-      <input v-model="location" placeholder="Location (optional)" class="mb-2 w-full rounded-md border border-border bg-panel2 px-2.5 py-1.5 text-sm text-fg outline-none focus:border-accent" />
+      <input v-model="location" placeholder="Location (optional)" class="mb-2 w-full rounded-md border border-border bg-panel2 px-2.5 py-1.5 text-sm text-fg outline-none focus:border-accent" >
       <textarea v-model="description" rows="2" placeholder="Description (optional)" class="mb-2 w-full resize-y rounded-md border border-border bg-panel2 px-2.5 py-1.5 text-sm text-fg outline-none focus:border-accent" />
 
       <div class="mb-3 grid grid-cols-2 gap-2">
@@ -122,7 +122,7 @@ async function remove() {
         </label>
         <label class="flex flex-col gap-1 text-xs text-muted">
           <span>Repeat (RRULE, optional)</span>
-          <input v-model="rrule" placeholder="FREQ=WEEKLY" class="rounded-md border border-border bg-panel2 px-2 py-1.5 text-sm text-fg outline-none focus:border-accent" />
+          <input v-model="rrule" placeholder="FREQ=WEEKLY" class="rounded-md border border-border bg-panel2 px-2 py-1.5 text-sm text-fg outline-none focus:border-accent" >
         </label>
       </div>
 

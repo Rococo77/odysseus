@@ -62,7 +62,7 @@ function onSubmit() {
       type="text"
       placeholder="Title"
       class="mb-2 w-full rounded-md border border-border bg-panel2 px-2.5 py-2 text-sm font-medium text-fg outline-none focus:border-accent"
-    />
+    >
 
     <textarea
       v-if="noteType === 'note'"
@@ -74,22 +74,22 @@ function onSubmit() {
 
     <div v-else class="mb-2 flex flex-col gap-1.5">
       <div v-for="(item, i) in items" :key="i" class="flex items-center gap-2">
-        <input v-model="item.done" type="checkbox" class="accent-accent" />
+        <input v-model="item.done" type="checkbox" class="accent-accent" >
         <input
           v-model="item.text"
           type="text"
           placeholder="List item"
           class="flex-1 rounded-md border border-border bg-panel2 px-2 py-1 text-sm text-fg outline-none focus:border-accent"
           @keydown.enter.prevent="addItem"
-        />
+        >
         <button type="button" class="text-muted hover:text-red" title="Remove" @click="removeItem(i)">✕</button>
       </div>
       <button type="button" class="self-start text-xs text-accent hover:underline" @click="addItem">+ Add item</button>
     </div>
 
     <div class="mb-3 grid grid-cols-3 gap-2">
-      <input v-model="label" type="text" placeholder="Label" class="rounded-md border border-border bg-panel2 px-2 py-1.5 text-sm text-fg outline-none focus:border-accent" />
-      <input v-model="dueDate" type="date" class="rounded-md border border-border bg-panel2 px-2 py-1.5 text-sm text-fg outline-none focus:border-accent" />
+      <input v-model="label" type="text" placeholder="Label" class="rounded-md border border-border bg-panel2 px-2 py-1.5 text-sm text-fg outline-none focus:border-accent" >
+      <input v-model="dueDate" type="date" class="rounded-md border border-border bg-panel2 px-2 py-1.5 text-sm text-fg outline-none focus:border-accent" >
       <select v-model="repeat" class="rounded-md border border-border bg-panel2 px-2 py-1.5 text-sm text-fg outline-none focus:border-accent" title="Repeat">
         <option v-for="r in REPEATS" :key="r" :value="r">{{ r === 'none' ? 'No repeat' : r }}</option>
       </select>

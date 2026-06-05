@@ -222,12 +222,24 @@ Configured in `src-tauri/` (Rust shell):
 **All primary pages are now migrated.** Each runs behind `/app/<page>`; once at
 parity, the legacy route is flipped to redirect there, then the old code is deleted.
 
-## What was verified
+## Checks & CI
 
-- `npm run generate` — static build succeeds (Chat, Tasks, Sessions, Memory,
-  Notes, Gallery, Calendar prerendered; Tailwind utilities from the `@theme` palette).
+Run locally from `frontend/`:
+
+```bash
+npm run lint        # ESLint (@nuxt/eslint flat config)
+npm run typecheck   # vue-tsc
+npm run test        # Vitest unit tests
+npm run generate    # static build
+```
+
+CI runs all four on every PR/push that touches `frontend/**`
+(`.github/workflows/frontend.yml`).
+
+- `npm run lint` — clean (ESLint).
 - `npm run typecheck` — passes (TypeScript, no errors).
 - `npm run test` — Vitest unit tests for the pure helpers (28 tests) pass.
+- `npm run generate` — static build succeeds (15 routes prerendered).
 - `npm run tauri build --no-bundle` — release Rust shell compiles against
   webkit2gtk and produces a native binary (sidecar/menu/tray/updater included).
 - CORS preflight — Tauri origins allowed with credentials; others rejected.

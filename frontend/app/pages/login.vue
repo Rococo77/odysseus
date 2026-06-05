@@ -67,13 +67,13 @@ const field = 'w-full rounded-md border border-border bg-panel2 px-3 py-2 text-s
       <p class="mb-4 text-sm text-muted">{{ title }}</p>
 
       <div class="flex flex-col gap-3">
-        <input v-model="username" :class="field" type="text" placeholder="Username" autocomplete="username" autofocus />
-        <input v-model="password" :class="field" type="password" placeholder="Password" :autocomplete="mode === 'login' ? 'current-password' : 'new-password'" />
+        <input v-model="username" :class="field" type="text" placeholder="Username" autocomplete="username" autofocus >
+        <input v-model="password" :class="field" type="password" placeholder="Password" :autocomplete="mode === 'login' ? 'current-password' : 'new-password'" >
 
-        <input v-if="needsTotp" v-model="totp" :class="field" type="text" inputmode="numeric" placeholder="2FA code" autocomplete="one-time-code" />
+        <input v-if="needsTotp" v-model="totp" :class="field" type="text" inputmode="numeric" placeholder="2FA code" autocomplete="one-time-code" >
 
         <label v-if="mode === 'login'" class="flex items-center gap-2 text-xs text-muted">
-          <input v-model="remember" type="checkbox" class="accent-accent" /> Remember me
+          <input v-model="remember" type="checkbox" class="accent-accent" > Remember me
         </label>
       </div>
 

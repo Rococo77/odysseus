@@ -123,10 +123,10 @@ const field = 'rounded-md border border-border bg-panel2 px-2.5 py-2 text-sm tex
       <h2 class="mb-1 font-semibold">CalDAV calendar</h2>
       <p class="mb-3 text-xs text-muted">Sync an external calendar (e.g. iCloud, Nextcloud). Leave URL empty and save to disconnect.</p>
       <div class="flex flex-col gap-2">
-        <input v-model="caldav.url" :class="field" type="url" placeholder="CalDAV URL (https://…)" />
+        <input v-model="caldav.url" :class="field" type="url" placeholder="CalDAV URL (https://…)" >
         <div class="grid grid-cols-2 gap-2">
-          <input v-model="caldav.username" :class="field" type="text" placeholder="Username" autocomplete="off" />
-          <input v-model="caldav.password" :class="field" type="password" placeholder="Password (leave blank to keep)" autocomplete="new-password" />
+          <input v-model="caldav.username" :class="field" type="text" placeholder="Username" autocomplete="off" >
+          <input v-model="caldav.password" :class="field" type="password" placeholder="Password (leave blank to keep)" autocomplete="new-password" >
         </div>
         <div class="flex justify-end gap-2">
           <button class="rounded-md border border-border px-3 py-1.5 text-sm text-fg hover:border-accent" @click="onTestCaldav">Test</button>
@@ -145,15 +145,15 @@ const field = 'rounded-md border border-border bg-panel2 px-2.5 py-2 text-sm tex
       <div class="flex flex-col gap-2.5 text-sm">
         <label class="flex items-center justify-between">
           <span>Image generation</span>
-          <input type="checkbox" class="accent-accent" :checked="bool('image_gen_enabled')" @change="setBool('image_gen_enabled', ($event.target as HTMLInputElement).checked)" />
+          <input type="checkbox" class="accent-accent" :checked="bool('image_gen_enabled')" @change="setBool('image_gen_enabled', ($event.target as HTMLInputElement).checked)" >
         </label>
         <label class="flex items-center justify-between">
           <span>Text-to-speech</span>
-          <input type="checkbox" class="accent-accent" :checked="bool('tts_enabled')" @change="setBool('tts_enabled', ($event.target as HTMLInputElement).checked)" />
+          <input type="checkbox" class="accent-accent" :checked="bool('tts_enabled')" @change="setBool('tts_enabled', ($event.target as HTMLInputElement).checked)" >
         </label>
         <label class="flex items-center justify-between">
           <span>Speech-to-text</span>
-          <input type="checkbox" class="accent-accent" :checked="bool('stt_enabled')" @change="setBool('stt_enabled', ($event.target as HTMLInputElement).checked)" />
+          <input type="checkbox" class="accent-accent" :checked="bool('stt_enabled')" @change="setBool('stt_enabled', ($event.target as HTMLInputElement).checked)" >
         </label>
         <label class="flex items-center justify-between gap-3">
           <span>Reminder channel</span>
@@ -165,7 +165,7 @@ const field = 'rounded-md border border-border bg-panel2 px-2.5 py-2 text-sm tex
         </label>
       </div>
 
-      <hr class="my-3 border-border" />
+      <hr class="my-3 border-border" >
       <label class="flex items-center justify-between text-sm">
         <span>Allow new account signups</span>
         <button class="rounded-md border px-2.5 py-1 text-xs" :class="signupEnabled ? 'border-green text-green' : 'border-border text-muted'" @click="toggleSignup">

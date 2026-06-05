@@ -26,7 +26,7 @@ function onClick() {
       class="w-full cursor-pointer object-cover transition-transform group-hover:scale-[1.02]"
       :class="{ 'opacity-70': selectable && !selected }"
       @click="onClick"
-    />
+    >
     <span v-if="selectable" class="absolute left-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full border text-xs" :class="selected ? 'border-accent bg-accent text-white' : 'border-white/70 bg-black/40 text-transparent'">✓</span>
     <button
       v-if="!selectable"
