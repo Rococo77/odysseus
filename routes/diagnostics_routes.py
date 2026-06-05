@@ -22,6 +22,7 @@ def setup_diagnostics_routes(
     async def get_database_stats() -> Dict[str, Any]:
         try:
             from core.database import get_detailed_stats
+
             return get_detailed_stats()
         except Exception as e:
             logger.error(f"DB stats error: {e}")
@@ -46,8 +47,8 @@ def setup_diagnostics_routes(
                 "transcript_success": data.get("success", False),
                 "transcript_length": len(data.get("transcript", "")) if data.get("success") else 0,
                 "transcript_preview": (data.get("transcript", "")[:500] + "...")
-                    if data.get("success") and len(data.get("transcript", "")) > 500
-                    else data.get("transcript", ""),
+                if data.get("success") and len(data.get("transcript", "")) > 500
+                else data.get("transcript", ""),
                 "error": data.get("error") if not data.get("success") else None,
             }
         except Exception as e:

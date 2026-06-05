@@ -7,13 +7,14 @@ Connects to a ChromaDB instance running as a standalone service.
 
 import os
 import logging
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 _client = None
 
 
-def get_chroma_client():
+def get_chroma_client() -> Any:
     """Get or create the singleton ChromaDB HTTP client.
 
     Raises RuntimeError with a clear install hint if the `chromadb` package
@@ -42,7 +43,7 @@ def get_chroma_client():
     return _client
 
 
-def reset_client():
+def reset_client() -> None:
     """Reset the singleton (e.g. after config change)."""
     global _client
     _client = None

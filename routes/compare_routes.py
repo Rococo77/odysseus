@@ -1,15 +1,17 @@
 # routes/compare_routes.py
 """Model A/B comparison routes."""
+
 import json
 import uuid
 import random
 from datetime import datetime
-from fastapi import APIRouter, Form, HTTPException, Request
+from fastapi import APIRouter, Depends, Form, HTTPException, Request
+from sqlalchemy.orm import Session as OrmSession
 from typing import List
 from pydantic import BaseModel
 import logging
 
-from core.database import Comparison, SessionLocal
+from core.database import Comparison, get_db
 from core.session_manager import SessionManager
 from src.auth_helpers import get_current_user
 
@@ -21,7 +23,7 @@ router = APIRouter(prefix="/api/compare", tags=["compare"])
 class RecordVoteRequest(BaseModel):
     prompt: str
     models: List[str]
-    winner: str           # model name or "tie"
+    winner: str  # model name or "tie"
     is_blind: bool = True
 
 
@@ -37,6 +39,7 @@ def setup_compare_routes(session_manager: SessionManager):
         endpoint_a: str = Form(...),
         endpoint_b: str = Form(...),
         is_blind: str = Form("true"),
+        db: OrmSession = Depends(get_db),
     ):
         """Create two ephemeral sessions and a comparison record.
 
@@ -49,7 +52,7 @@ def setup_compare_routes(session_manager: SessionManager):
 
         # Create ephemeral sessions (prefixed [CMP])
         for sid, model, endpoint in [(sid_a, model_a, endpoint_a), (sid_b, model_b, endpoint_b)]:
-            user = getattr(request.state, 'current_user', None)
+            user = getattr(request.state, "current_user", None)
             session_manager.create_session(
                 session_id=sid,
                 name=f"[CMP] {model.split('/')[-1]}",
@@ -59,21 +62,16 @@ def setup_compare_routes(session_manager: SessionManager):
                 owner=user,
             )
             # Copy API key from endpoint config
-            db = SessionLocal()
-            try:
-                from core.database import ModelEndpoint
-                from src.endpoint_resolver import build_headers, normalize_base
-                # Find matching endpoint by URL
-                base = normalize_base(endpoint)
-                ep = db.query(ModelEndpoint).filter(
-                    ModelEndpoint.base_url == base
-                ).first()
-                if ep and ep.api_key:
-                    s = session_manager.sessions.get(sid)
-                    if s:
-                        s.headers = build_headers(ep.api_key, ep.base_url)
-            finally:
-                db.close()
+            from core.database import ModelEndpoint
+            from src.endpoint_resolver import build_headers, normalize_base
+
+            # Find matching endpoint by URL
+            base = normalize_base(endpoint)
+            ep = db.query(ModelEndpoint).filter(ModelEndpoint.base_url == base).first()
+            if ep and ep.api_key:
+                s = session_manager.sessions.get(sid)
+                if s:
+                    s.headers = build_headers(ep.api_key, ep.base_url)
 
         # Blind mapping: randomly assign left/right
         blind = str(is_blind).lower() == "true"
@@ -85,23 +83,19 @@ def setup_compare_routes(session_manager: SessionManager):
             mapping = {"left": "a", "right": "b"}
 
         # Store comparison record
-        db = SessionLocal()
-        try:
-            comp = Comparison(
-                id=comp_id,
-                prompt=prompt,
-                model_a=model_a,
-                model_b=model_b,
-                endpoint_a=endpoint_a,
-                endpoint_b=endpoint_b,
-                is_blind=blind,
-                blind_mapping=json.dumps(mapping),
-                owner=user,
-            )
-            db.add(comp)
-            db.commit()
-        finally:
-            db.close()
+        comp = Comparison(
+            id=comp_id,
+            prompt=prompt,
+            model_a=model_a,
+            model_b=model_b,
+            endpoint_a=endpoint_a,
+            endpoint_b=endpoint_b,
+            is_blind=blind,
+            blind_mapping=json.dumps(mapping),
+            owner=user,
+        )
+        db.add(comp)
+        db.commit()
 
         # Map session IDs to left/right based on blind mapping
         session_left = sid_a if mapping["left"] == "a" else sid_b
@@ -122,49 +116,50 @@ def setup_compare_routes(session_manager: SessionManager):
         request: Request,
         comp_id: str,
         winner: str = Form(...),  # "left", "right", or "tie"
+        db: OrmSession = Depends(get_db),
     ):
         """Record the user's vote and reveal model names if blind."""
         user = get_current_user(request)
-        db = SessionLocal()
-        try:
-            comp = db.query(Comparison).filter(Comparison.id == comp_id).first()
-            if not comp:
-                raise HTTPException(404, "Comparison not found")
-            # SECURITY: strict ownership — null-owner Comparisons were
-            # accessible to every user.
-            if user and comp.owner != user:
-                raise HTTPException(404, "Comparison not found")
-            if comp.winner:
-                raise HTTPException(400, "Already voted")
+        comp = db.query(Comparison).filter(Comparison.id == comp_id).first()
+        if not comp:
+            raise HTTPException(404, "Comparison not found")
+        # SECURITY: strict ownership — null-owner Comparisons were
+        # accessible to every user.
+        if user and comp.owner != user:
+            raise HTTPException(404, "Comparison not found")
+        if comp.winner:
+            raise HTTPException(400, "Already voted")
 
-            mapping = json.loads(comp.blind_mapping) if comp.blind_mapping else {"left": "a", "right": "b"}
+        mapping = (
+            json.loads(comp.blind_mapping) if comp.blind_mapping else {"left": "a", "right": "b"}
+        )
 
-            if winner == "tie":
-                comp.winner = "tie"
-            elif winner == "left":
-                comp.winner = mapping["left"]
-            elif winner == "right":
-                comp.winner = mapping["right"]
-            else:
-                raise HTTPException(400, "winner must be 'left', 'right', or 'tie'")
+        if winner == "tie":
+            comp.winner = "tie"
+        elif winner == "left":
+            comp.winner = mapping["left"]
+        elif winner == "right":
+            comp.winner = mapping["right"]
+        else:
+            raise HTTPException(400, "winner must be 'left', 'right', or 'tie'")
 
-            comp.voted_at = datetime.utcnow()
-            db.commit()
+        comp.voted_at = datetime.utcnow()
+        db.commit()
 
-            return {
-                "winner": comp.winner,
-                "model_a": comp.model_a,
-                "model_b": comp.model_b,
-                "revealed": {
-                    "left": comp.model_a if mapping["left"] == "a" else comp.model_b,
-                    "right": comp.model_a if mapping["right"] == "a" else comp.model_b,
-                },
-            }
-        finally:
-            db.close()
+        return {
+            "winner": comp.winner,
+            "model_a": comp.model_a,
+            "model_b": comp.model_b,
+            "revealed": {
+                "left": comp.model_a if mapping["left"] == "a" else comp.model_b,
+                "right": comp.model_a if mapping["right"] == "a" else comp.model_b,
+            },
+        }
 
     @router.post("/record")
-    def record_comparison(request: Request, body: RecordVoteRequest):
+    def record_comparison(
+        request: Request, body: RecordVoteRequest, db: OrmSession = Depends(get_db)
+    ):
         """Lightweight endpoint to record a comparison vote from the frontend."""
         user = get_current_user(request)
         comp_id = str(uuid.uuid4())
@@ -178,71 +173,59 @@ def setup_compare_routes(session_manager: SessionManager):
         else:
             blind_mapping = None
 
-        db = SessionLocal()
-        try:
-            comp = Comparison(
-                id=comp_id,
-                prompt=body.prompt[:500],
-                model_a=model_a,
-                model_b=model_b,
-                endpoint_a="",
-                endpoint_b="",
-                winner=body.winner,
-                is_blind=body.is_blind,
-                blind_mapping=blind_mapping,
-                voted_at=datetime.utcnow(),
-                owner=user,
-            )
-            db.add(comp)
-            db.commit()
-        finally:
-            db.close()
+        comp = Comparison(
+            id=comp_id,
+            prompt=body.prompt[:500],
+            model_a=model_a,
+            model_b=model_b,
+            endpoint_a="",
+            endpoint_b="",
+            winner=body.winner,
+            is_blind=body.is_blind,
+            blind_mapping=blind_mapping,
+            voted_at=datetime.utcnow(),
+            owner=user,
+        )
+        db.add(comp)
+        db.commit()
 
         return {"status": "ok", "id": comp_id}
 
     @router.get("/history")
-    def list_comparisons(request: Request):
+    def list_comparisons(request: Request, db: OrmSession = Depends(get_db)):
         """List past comparisons."""
         user = get_current_user(request)
-        db = SessionLocal()
-        try:
-            q = db.query(Comparison)
-            if user:
-                q = q.filter(Comparison.owner == user)
-            comps = q.order_by(Comparison.created_at.desc()).limit(50).all()
-            return [
-                {
-                    "id": c.id,
-                    "prompt": c.prompt[:100],
-                    "model_a": c.model_a,
-                    "model_b": c.model_b,
-                    "winner": c.winner,
-                    "is_blind": c.is_blind,
-                    "voted_at": c.voted_at.isoformat() if c.voted_at else None,
-                    "created_at": c.created_at.isoformat() if c.created_at else None,
-                }
-                for c in comps
-            ]
-        finally:
-            db.close()
+        q = db.query(Comparison)
+        if user:
+            q = q.filter(Comparison.owner == user)
+        comps = q.order_by(Comparison.created_at.desc()).limit(50).all()
+        return [
+            {
+                "id": c.id,
+                "prompt": c.prompt[:100],
+                "model_a": c.model_a,
+                "model_b": c.model_b,
+                "winner": c.winner,
+                "is_blind": c.is_blind,
+                "voted_at": c.voted_at.isoformat() if c.voted_at else None,
+                "created_at": c.created_at.isoformat() if c.created_at else None,
+            }
+            for c in comps
+        ]
 
     @router.delete("/{comp_id}")
-    def delete_comparison(request: Request, comp_id: str):
+    def delete_comparison(request: Request, comp_id: str, db: OrmSession = Depends(get_db)):
         """Delete a comparison and its ephemeral sessions."""
         user = get_current_user(request)
-        db = SessionLocal()
-        try:
-            comp = db.query(Comparison).filter(Comparison.id == comp_id).first()
-            if not comp:
-                raise HTTPException(404, "Comparison not found")
-            # SECURITY: strict ownership — null-owner Comparisons were
-            # accessible to every user.
-            if user and comp.owner != user:
-                raise HTTPException(404, "Comparison not found")
-            db.delete(comp)
-            db.commit()
-            return {"status": "deleted"}
-        finally:
-            db.close()
+        comp = db.query(Comparison).filter(Comparison.id == comp_id).first()
+        if not comp:
+            raise HTTPException(404, "Comparison not found")
+        # SECURITY: strict ownership — null-owner Comparisons were
+        # accessible to every user.
+        if user and comp.owner != user:
+            raise HTTPException(404, "Comparison not found")
+        db.delete(comp)
+        db.commit()
+        return {"status": "deleted"}
 
     return router

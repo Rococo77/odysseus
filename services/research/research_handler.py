@@ -7,6 +7,7 @@ if needed.
 
 Includes a task registry so research survives page refreshes and can be cancelled.
 """
+
 import asyncio
 import json
 import logging
@@ -32,6 +33,7 @@ class ResearchHandler:
         """Initialize the legacy research engine as a fallback."""
         try:
             from research_engine import ResearchOrchestrator, Config
+
             config = Config(max_searches=12, max_content_per_page=15000)
             self._legacy_engine = ResearchOrchestrator(config)
             logger.info("Legacy ResearchOrchestrator initialized (fallback)")
@@ -53,7 +55,7 @@ class ResearchHandler:
         llm_endpoint: str,
         llm_model: str,
         max_time: int = 300,
-        llm_headers: dict = None,
+        llm_headers: Optional[dict] = None,
     ) -> dict:
         """Start research as a background task. Returns task info dict."""
         # Cancel any existing research for this session
@@ -79,7 +81,9 @@ class ResearchHandler:
         async def _run():
             try:
                 result = await self.call_research_service(
-                    query, llm_endpoint, llm_model,
+                    query,
+                    llm_endpoint,
+                    llm_model,
                     max_time=max_time,
                     progress_callback=on_progress,
                     _task_entry=entry,
@@ -231,8 +235,8 @@ class ResearchHandler:
         llm_model: str,
         max_time: int = 300,
         progress_callback=None,
-        _task_entry: dict = None,
-        llm_headers: dict = None,
+        _task_entry: Optional[dict] = None,
+        llm_headers: Optional[dict] = None,
     ) -> str:
         """
         Run iterative deep research using the LLM-in-the-loop DeepResearcher.
@@ -278,7 +282,10 @@ class ResearchHandler:
                 logger.info(f"  {key}: {value}")
 
             return self._format_research_report(
-                query, report, stats, elapsed,
+                query,
+                report,
+                stats,
+                elapsed,
                 findings=researcher.findings,
                 evolving_report=researcher.evolving_report,
             )
@@ -288,14 +295,19 @@ class ResearchHandler:
             return await self._fallback_research(query, llm_endpoint, llm_model, max_time, str(e))
 
     async def _fallback_research(
-        self, query: str, llm_endpoint: str, llm_model: str,
-        max_time: int, primary_error: str,
+        self,
+        query: str,
+        llm_endpoint: str,
+        llm_model: str,
+        max_time: int,
+        primary_error: str,
     ) -> str:
         """Fall back to legacy engine, then to basic web search."""
         # Try legacy orchestrator
         if self._legacy_engine:
             try:
                 import asyncio
+
                 logger.info("Falling back to legacy ResearchOrchestrator...")
                 loop = asyncio.get_event_loop()
                 result = await loop.run_in_executor(
@@ -319,15 +331,20 @@ class ResearchHandler:
             return {
                 "Findings": len(self._legacy_engine.findings),
                 "Sources": len(self._legacy_engine.source_reports),
-                "Searches": tracker.counters['searches_executed'],
-                "URLs": tracker.counters['urls_processed'],
+                "Searches": tracker.counters["searches_executed"],
+                "URLs": tracker.counters["urls_processed"],
             }
         except Exception:
             return {}
 
     def _format_research_report(
-        self, query: str, full_report: str, stats: dict, elapsed: float,
-        findings: list = None, evolving_report: str = None,
+        self,
+        query: str,
+        full_report: str,
+        stats: dict,
+        elapsed: float,
+        findings: Optional[list] = None,
+        evolving_report: Optional[str] = None,
     ) -> str:
         """Format research report with sources list and expandable raw findings."""
         summary_lines = [

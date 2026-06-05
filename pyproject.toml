@@ -1,3 +1,113 @@
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
+# Integration tests boot the full app (real DB, real router wiring) and must run
+# in their own process — they can't share interpreter state with the unit tests,
+# which stub heavy deps. Excluded from the default run; CI runs them in a
+# dedicated step with `-m integration`. Locally: `pytest -m integration`.
+addopts = "-m 'not integration'"
+markers = [
+    "integration: full-app TestClient integration tests (separate process; see tests/integration/)",
+]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+# scripts/ are one-off operational utilities, not part of the served app.
+extend-exclude = ["scripts", "static/lib"]
+
+[tool.ruff.lint]
+# Day-1 scope: the high-signal "real bug" set only — syntax errors (E9),
+# comparison/assertion bugs (F63), syntax-level pyflakes (F7), and undefined
+# names / unbound locals (F82). This catches genuine defects without forcing a
+# repo-wide mechanical reformat on enablement. Tighten in follow-up PRs per the
+# roadmap in docs/plans/03-ci-pipeline.md (F401/I/UP/B, then E501).
+select = ["E9", "F63", "F7", "F82"]
+
+[tool.mypy]
+python_version = "3.11"
+# src/ and core/ have no __init__.py, so a module like constants.py is
+# reachable both as `constants` and `src.constants`. Tell mypy to treat the
+# repo root as the package base so each file maps to a single module name and
+# `mypy src core` doesn't abort with "Source file found twice".
+explicit_package_bases = true
+namespace_packages = true
+mypy_path = "."
+# Progressive adoption: lenient defaults now, ratcheted per-module via
+# overrides as typing improves. See docs/plans/03-ci-pipeline.md.
+ignore_missing_imports = true
+check_untyped_defs = false
+warn_unused_ignores = false
+
+# Strict-enforced modules. These pass `mypy --strict` today and are gated as a
+# BLOCKING CI step (typecheck-strict in .github/workflows/ci.yml, run with
+# --follow-imports=skip so each file is checked in isolation). Add a module here
+# only after it is strict-clean; the list is the ratchet — it only grows. Keep
+# it in sync with the file list in the workflow.
+[[tool.mypy.overrides]]
+module = [
+    "src.action_intents",
+    "src.app_helpers",
+    "src.constants",
+    "src.database",
+    "src.exceptions",
+    "src.goal_based_extractor",
+    "src.model_context",
+    "src.prompt_security",
+    "src.rate_limiter",
+    "src.session_actions",
+    "src.text_helpers",
+    "src.tool_schemas",
+    "src.tool_security",
+    "core.atomic_io",
+    "core.constants",
+    "core.exceptions",
+    "core.platform_compat",
+    "services.search.query",
+    "services.memory.service",
+    "services.search.analytics",
+    "services.search.cache",
+    "services.search.ranking",
+    "services.youtube.youtube_handler",
+    "src.bg_jobs",
+    "src.integrations",
+    "src.research_utils",
+    "src.tool_parsing",
+    "src.youtube_handler",
+    "src.agent_tools",
+    "src.assistant_log",
+    "src.auth_helpers",
+    "src.chroma_client",
+    "src.model_discovery",
+]
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+warn_return_any = true
+no_implicit_optional = true
+warn_unused_ignores = true
+
+[tool.coverage.run]
+source = ["src", "core", "routes"]
+branch = true
+omit = [
+    "tests/*",
+    "scripts/*",
+    "mcp_servers/*",
+    "*/__init__.py",
+]
+
+[tool.coverage.report]
+# Floor only — the suite is regression-focused (~8% today), so this guards
+# against coverage *dropping*, not a target. Ratchet upward as integration
+# tests land (see docs/plans/03-ci-pipeline.md and the routes refactor Phase 0).
+# Branch coverage is on, so the headline figure (~6.6%) is stricter than a
+# line-only number; the floor sits just below it to absorb cross-version noise.
+fail_under = 6
+show_missing = true
+skip_covered = false
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.:",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+]

@@ -57,6 +57,7 @@ def _find_npx() -> str:
             return npx_candidate
     return "npx"  # fallback, will fail with a clear error
 
+
 # Server definitions: id -> (script path relative to project root, display name)
 #
 # bash / python / filesystem / web_search were folded into native in-process
@@ -67,10 +68,10 @@ def _find_npx() -> str:
 # carries hundreds of LOC of unique IMAP / HTTP / manager logic not worth
 # duplicating into the native path right now.
 _BUILTIN_SERVERS = {
-    "image_gen":  ("mcp_servers/image_gen_server.py",  "Built-in: Image Generation"),
-    "memory":     ("mcp_servers/memory_server.py",     "Built-in: Memory"),
-    "rag":        ("mcp_servers/rag_server.py",        "Built-in: RAG"),
-    "email":      ("mcp_servers/email_server.py",      "Built-in: Email"),
+    "image_gen": ("mcp_servers/image_gen_server.py", "Built-in: Image Generation"),
+    "memory": ("mcp_servers/memory_server.py", "Built-in: Memory"),
+    "rag": ("mcp_servers/rag_server.py", "Built-in: RAG"),
+    "email": ("mcp_servers/email_server.py", "Built-in: Email"),
 }
 
 # NPX-based built-in servers (run via npx, not Python)
@@ -204,7 +205,10 @@ async def _is_npx_package_cached(npx_path, package_spec, timeout_s=5):
     """
     try:
         proc = await asyncio.create_subprocess_exec(
-            npx_path, "--no-install", package_spec, "--version",
+            npx_path,
+            "--no-install",
+            package_spec,
+            "--version",
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )

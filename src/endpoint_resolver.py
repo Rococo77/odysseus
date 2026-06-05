@@ -22,17 +22,25 @@ logger = logging.getLogger(__name__)
 # `text-embedding-ada-002` first, which silently broke email-summarize and
 # other resolve_endpoint callers with "Cannot reach model").
 _NON_CHAT_MODEL = (
-    "text-embedding", "embedding", "tts-", "whisper", "dall-e",
-    "moderation", "rerank", "reranker", "clip", "stable-diffusion",
+    "text-embedding",
+    "embedding",
+    "tts-",
+    "whisper",
+    "dall-e",
+    "moderation",
+    "rerank",
+    "reranker",
+    "clip",
+    "stable-diffusion",
 )
 
 
 def _first_chat_model(models) -> Optional[str]:
     """First model that isn't an embedding/tts/etc.; falls back to models[0]."""
-    for m in (models or []):
+    for m in models or []:
         if not any(p in str(m).lower() for p in _NON_CHAT_MODEL):
             return m
-    return (models[0] if models else None)
+    return models[0] if models else None
 
 
 # Cache for Tailscale hostname → IP resolution
@@ -55,11 +63,11 @@ def _resolve_tailscale_host(hostname: str) -> Optional[str]:
     # DNS failed — try tailscale
     try:
         result = subprocess.run(
-            ["tailscale", "status", "--json"],
-            capture_output=True, text=True, timeout=5
+            ["tailscale", "status", "--json"], capture_output=True, text=True, timeout=5
         )
         if result.returncode == 0:
             import json as _json
+
             data = _json.loads(result.stdout)
             peers = data.get("Peer", {})
             for _id, peer in peers.items():
@@ -125,7 +133,11 @@ def _ollama_api_root(base: str) -> str:
     if path.endswith("/api"):
         return base
     if host.endswith("ollama.com"):
-        root = f"{parsed.scheme}://{parsed.netloc}" if parsed.scheme and parsed.netloc else "https://ollama.com"
+        root = (
+            f"{parsed.scheme}://{parsed.netloc}"
+            if parsed.scheme and parsed.netloc
+            else "https://ollama.com"
+        )
         return root.rstrip("/") + "/api"
     return base
 
@@ -192,28 +204,63 @@ def resolve_endpoint(
     """
     try:
         from src.settings import get_user_setting, load_settings
+
         settings = load_settings()
     except Exception:
         return fallback_url, fallback_model, fallback_headers
 
-    ep_id = (get_user_setting(f"{setting_prefix}_endpoint_id", owner or "", settings.get(f"{setting_prefix}_endpoint_id", "")) or "").strip()
-    model = (get_user_setting(f"{setting_prefix}_model", owner or "", settings.get(f"{setting_prefix}_model", "")) or "").strip()
+    ep_id = (
+        get_user_setting(
+            f"{setting_prefix}_endpoint_id",
+            owner or "",
+            settings.get(f"{setting_prefix}_endpoint_id", ""),
+        )
+        or ""
+    ).strip()
+    model = (
+        get_user_setting(
+            f"{setting_prefix}_model", owner or "", settings.get(f"{setting_prefix}_model", "")
+        )
+        or ""
+    ).strip()
 
     # Unset Utility means "same as Default Chat Model". This keeps background
     # features usable out of the box and lets users override Utility only when
     # they explicitly want a separate cheaper/faster model.
     if setting_prefix == "utility" and not ep_id:
-        ep_id = (get_user_setting("default_endpoint_id", owner or "", settings.get("default_endpoint_id", "")) or "").strip()
-        model = (get_user_setting("default_model", owner or "", settings.get("default_model", "")) or "").strip()
+        ep_id = (
+            get_user_setting(
+                "default_endpoint_id", owner or "", settings.get("default_endpoint_id", "")
+            )
+            or ""
+        ).strip()
+        model = (
+            get_user_setting("default_model", owner or "", settings.get("default_model", "")) or ""
+        ).strip()
 
     # Fall back to utility model for task/research/auto-naming if not specifically configured.
     # If Utility itself is unset, the block above makes that resolve to Default Chat.
     if not ep_id and setting_prefix != "utility":
-        ep_id = (get_user_setting("utility_endpoint_id", owner or "", settings.get("utility_endpoint_id", "")) or "").strip()
-        model = (get_user_setting("utility_model", owner or "", settings.get("utility_model", "")) or "").strip()
+        ep_id = (
+            get_user_setting(
+                "utility_endpoint_id", owner or "", settings.get("utility_endpoint_id", "")
+            )
+            or ""
+        ).strip()
+        model = (
+            get_user_setting("utility_model", owner or "", settings.get("utility_model", "")) or ""
+        ).strip()
         if not ep_id:
-            ep_id = (get_user_setting("default_endpoint_id", owner or "", settings.get("default_endpoint_id", "")) or "").strip()
-            model = (get_user_setting("default_model", owner or "", settings.get("default_model", "")) or "").strip()
+            ep_id = (
+                get_user_setting(
+                    "default_endpoint_id", owner or "", settings.get("default_endpoint_id", "")
+                )
+                or ""
+            ).strip()
+            model = (
+                get_user_setting("default_model", owner or "", settings.get("default_model", ""))
+                or ""
+            ).strip()
 
     if not ep_id:
         return fallback_url, fallback_model, fallback_headers
@@ -226,6 +273,7 @@ def resolve_endpoint(
         )
         if owner:
             from src.auth_helpers import owner_filter
+
             ep = owner_filter(ep, ModelEndpoint, owner).first()
         else:
             ep = ep.first()
@@ -237,7 +285,7 @@ def resolve_endpoint(
         headers = build_headers(ep.api_key, base)
 
         # If no model specified, try to pick the first from endpoint's cached list
-        if not model and hasattr(ep, 'models') and ep.models:
+        if not model and hasattr(ep, "models") and ep.models:
             try:
                 models = json.loads(ep.models) if isinstance(ep.models, str) else ep.models
                 if models:
@@ -265,10 +313,14 @@ def resolve_endpoint_by_id(
         return None
     db = SessionLocal()
     try:
-        ep = db.query(ModelEndpoint).filter(
-            ModelEndpoint.id == ep_id,
-            ModelEndpoint.is_enabled == True,
-        ).first()
+        ep = (
+            db.query(ModelEndpoint)
+            .filter(
+                ModelEndpoint.id == ep_id,
+                ModelEndpoint.is_enabled == True,
+            )
+            .first()
+        )
         if not ep:
             return None
         base = normalize_base(ep.base_url)
@@ -306,8 +358,14 @@ def resolve_utility_fallback_candidates(owner: Optional[str] = None) -> list:
     """Configured fallback chain for the Utility model (`utility_model_fallbacks`)."""
     try:
         from src.settings import get_user_setting, load_settings
+
         settings = load_settings()
-        if not (get_user_setting("utility_endpoint_id", owner or "", settings.get("utility_endpoint_id", "")) or "").strip():
+        if not (
+            get_user_setting(
+                "utility_endpoint_id", owner or "", settings.get("utility_endpoint_id", "")
+            )
+            or ""
+        ).strip():
             return _resolve_fallback_candidates("default_model_fallbacks", owner=owner)
     except Exception:
         pass
@@ -323,6 +381,7 @@ def _resolve_fallback_candidates(setting_key: str, owner: Optional[str] = None) 
     out = []
     try:
         from src.settings import get_user_setting, load_settings
+
         settings = load_settings()
         chain = get_user_setting(setting_key, owner or "", settings.get(setting_key) or []) or []
     except Exception:

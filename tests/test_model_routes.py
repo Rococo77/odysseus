@@ -1,4 +1,5 @@
 """Tests for model route helper functions — pure logic, no server needed."""
+
 import sys
 import types
 from unittest.mock import MagicMock
@@ -16,9 +17,19 @@ if _endpoint_resolver is not None and not getattr(_endpoint_resolver, "__file__"
 if "core.database" not in sys.modules:
     _core_db = types.ModuleType("core.database")
     for _name in [
-        "SessionLocal", "ModelEndpoint", "Session", "ChatMessage", "Document",
-        "DocumentVersion", "GalleryImage", "GalleryAlbum", "Note",
-        "CalendarCal", "CalendarEvent", "ScheduledTask", "TaskRun",
+        "SessionLocal",
+        "ModelEndpoint",
+        "Session",
+        "ChatMessage",
+        "Document",
+        "DocumentVersion",
+        "GalleryImage",
+        "GalleryAlbum",
+        "Note",
+        "CalendarCal",
+        "CalendarEvent",
+        "ScheduledTask",
+        "TaskRun",
         "McpServer",
     ]:
         setattr(_core_db, _name, MagicMock())
@@ -40,6 +51,7 @@ from src.llm_core import ANTHROPIC_MODELS
 
 # ── _match_provider_curated ──
 
+
 class TestMatchProviderCurated:
     def test_url_match_overrides_provider(self):
         assert _match_provider_curated("https://z.ai/v1", "openai") == "zai"
@@ -57,10 +69,16 @@ class TestMatchProviderCurated:
         assert _match_provider_curated("https://api.together.xyz/v1", "openai") == "together"
 
     def test_fireworks_url(self):
-        assert _match_provider_curated("https://api.fireworks.ai/inference/v1", "openai") == "fireworks"
+        assert (
+            _match_provider_curated("https://api.fireworks.ai/inference/v1", "openai")
+            == "fireworks"
+        )
 
     def test_google_url(self):
-        assert _match_provider_curated("https://generativelanguage.googleapis.com/v1beta", "openai") == "google"
+        assert (
+            _match_provider_curated("https://generativelanguage.googleapis.com/v1beta", "openai")
+            == "google"
+        )
 
     def test_xai_url(self):
         assert _match_provider_curated("https://api.x.ai/v1", "openai") == "xai"
@@ -79,6 +97,7 @@ class TestMatchProviderCurated:
 
 
 # ── _curate_models ──
+
 
 class TestCurateModels:
     def test_known_provider_partitions(self):
@@ -145,19 +164,35 @@ class TestCurateModels:
 
 # ── _is_chat_model ──
 
+
 class TestIsChatModel:
-    @pytest.mark.parametrize("model_id", [
-        "gpt-4o", "gpt-4o-mini", "claude-sonnet-4", "llama-3.3-70b",
-        "deepseek-chat", "gemini-2.0-flash", "o3",
-        "llama-4-scout-17b-16e-instruct",
-    ])
+    @pytest.mark.parametrize(
+        "model_id",
+        [
+            "gpt-4o",
+            "gpt-4o-mini",
+            "claude-sonnet-4",
+            "llama-3.3-70b",
+            "deepseek-chat",
+            "gemini-2.0-flash",
+            "o3",
+            "llama-4-scout-17b-16e-instruct",
+        ],
+    )
     def test_chat_models(self, model_id):
         assert _is_chat_model(model_id) is True
 
-    @pytest.mark.parametrize("model_id", [
-        "dall-e-3", "tts-1", "whisper-1", "text-embedding-3-small",
-        "gpt-image-1", "sora-1",
-    ])
+    @pytest.mark.parametrize(
+        "model_id",
+        [
+            "dall-e-3",
+            "tts-1",
+            "whisper-1",
+            "text-embedding-3-small",
+            "gpt-image-1",
+            "sora-1",
+        ],
+    )
     def test_non_chat_models(self, model_id):
         assert _is_chat_model(model_id) is False
 
@@ -176,6 +211,7 @@ class TestIsChatModel:
 
 
 # ── _classify_endpoint ──
+
 
 class TestClassifyEndpoint:
     def test_localhost(self):
@@ -201,6 +237,7 @@ class TestClassifyEndpoint:
 
 
 # ── setup probing ──
+
 
 class TestSetupProbeSafety:
     @pytest.mark.parametrize("value", ["true", "1", "yes", "on", " TRUE "])
@@ -283,7 +320,10 @@ class TestSetupProbeSafety:
 
         monkeypatch.setattr(model_routes.httpx, "get", fake_get)
 
-        assert _probe_endpoint("https://ollama.com/api", "ollama-key") == ["gpt-oss:120b", "qwen3:235b"]
+        assert _probe_endpoint("https://ollama.com/api", "ollama-key") == [
+            "gpt-oss:120b",
+            "qwen3:235b",
+        ]
         assert seen == [("https://ollama.com/api/tags", {"Authorization": "Bearer ollama-key"})]
 
     def test_unkeyed_anthropic_probe_can_use_curated_fallback(self, monkeypatch):

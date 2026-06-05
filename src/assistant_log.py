@@ -11,7 +11,7 @@ import re
 import uuid
 import logging
 from datetime import datetime
-from typing import Optional
+from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 _session_manager = None
 
 
-def set_session_manager(sm):
+def set_session_manager(sm: Any) -> None:
     global _session_manager
     _session_manager = sm
 
@@ -37,7 +37,7 @@ def log_to_assistant(
     role: str = "assistant",
     *,
     category: Optional[str] = None,
-):
+) -> None:
     """Legacy no-op.
 
     Older builds wrote system/task activity into a favorited Assistant chat

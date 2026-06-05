@@ -50,7 +50,9 @@ class McpManager:
             self._connections[server_id] = {"status": "error", "error": str(e), "name": name}
             return False
 
-    async def _connect_stdio(self, server_id: str, name: str, command: str, args: List[str], env: Dict[str, str]) -> bool:
+    async def _connect_stdio(
+        self, server_id: str, name: str, command: str, args: List[str], env: Dict[str, str]
+    ) -> bool:
         """Connect to an MCP server via stdio transport."""
         try:
             from mcp import ClientSession, StdioServerParameters
@@ -74,11 +76,13 @@ class McpManager:
             tools_result = await session.list_tools()
             tools = []
             for tool in tools_result.tools:
-                tools.append({
-                    "name": tool.name,
-                    "description": tool.description or "",
-                    "input_schema": tool.inputSchema if hasattr(tool, 'inputSchema') else {},
-                })
+                tools.append(
+                    {
+                        "name": tool.name,
+                        "description": tool.description or "",
+                        "input_schema": tool.inputSchema if hasattr(tool, "inputSchema") else {},
+                    }
+                )
 
             self._sessions[server_id] = session
             self._stacks[server_id] = stack
@@ -89,7 +93,7 @@ class McpManager:
             identity_hints = []
             for k, v in (env or {}).items():
                 k_lower = k.lower()
-                if any(x in k_lower for x in ['email_address', 'account', 'user', 'username']):
+                if any(x in k_lower for x in ["email_address", "account", "user", "username"]):
                     identity_hints.append(v)
             identity = ", ".join(identity_hints) if identity_hints else ""
 
@@ -101,12 +105,18 @@ class McpManager:
                 "identity": identity,
             }
 
-            logger.info(f"MCP server connected: {name} ({server_id}) - {len(tools)} tools via stdio")
+            logger.info(
+                f"MCP server connected: {name} ({server_id}) - {len(tools)} tools via stdio"
+            )
             return True
 
         except ImportError:
             logger.warning("MCP package not installed. Install with: pip install mcp")
-            self._connections[server_id] = {"status": "error", "error": "mcp package not installed", "name": name}
+            self._connections[server_id] = {
+                "status": "error",
+                "error": "mcp package not installed",
+                "name": name,
+            }
             return False
 
     async def _connect_sse(self, server_id: str, name: str, url: str) -> bool:
@@ -127,11 +137,13 @@ class McpManager:
             tools_result = await session.list_tools()
             tools = []
             for tool in tools_result.tools:
-                tools.append({
-                    "name": tool.name,
-                    "description": tool.description or "",
-                    "input_schema": tool.inputSchema if hasattr(tool, 'inputSchema') else {},
-                })
+                tools.append(
+                    {
+                        "name": tool.name,
+                        "description": tool.description or "",
+                        "input_schema": tool.inputSchema if hasattr(tool, "inputSchema") else {},
+                    }
+                )
 
             self._sessions[server_id] = session
             self._stacks[server_id] = stack
@@ -148,7 +160,11 @@ class McpManager:
 
         except ImportError:
             logger.warning("MCP package not installed. Install with: pip install mcp")
-            self._connections[server_id] = {"status": "error", "error": "mcp package not installed", "name": name}
+            self._connections[server_id] = {
+                "status": "error",
+                "error": "mcp package not installed",
+                "name": name,
+            }
             return False
 
     async def disconnect_server(self, server_id: str):
@@ -222,13 +238,21 @@ class McpManager:
                         try:
                             result = await self._do_call(session, tool_name, arguments)
                         except Exception as e2:
-                            logger.error(f"MCP tool call failed after reconnect: {qualified_name}: {e2}")
+                            logger.error(
+                                f"MCP tool call failed after reconnect: {qualified_name}: {e2}"
+                            )
                             return {"error": str(e2), "exit_code": 1}
                     else:
-                        return {"error": f"Reconnected but no session for {server_id}", "exit_code": 1}
+                        return {
+                            "error": f"Reconnected but no session for {server_id}",
+                            "exit_code": 1,
+                        }
                 else:
                     logger.error(f"MCP reconnect failed for {server_id}")
-                    return {"error": f"MCP server crashed and reconnect failed: {server_id}", "exit_code": 1}
+                    return {
+                        "error": f"MCP server crashed and reconnect failed: {server_id}",
+                        "exit_code": 1,
+                    }
             else:
                 logger.error(f"MCP tool call failed: {qualified_name}: {e}")
                 return {"error": str(e), "exit_code": 1}
@@ -241,18 +265,18 @@ class McpManager:
         output_parts = []
         images = []
         for content in result.content:
-            if hasattr(content, 'text'):
+            if hasattr(content, "text"):
                 output_parts.append(content.text)
-            elif getattr(content, 'type', '') == 'image' and hasattr(content, 'data'):
+            elif getattr(content, "type", "") == "image" and hasattr(content, "data"):
                 # Image content (e.g. Playwright screenshots)
-                mime = getattr(content, 'mimeType', 'image/png')
+                mime = getattr(content, "mimeType", "image/png")
                 images.append({"data": content.data, "mimeType": mime})
                 output_parts.append(f"[Screenshot captured ({mime})]")
-            elif hasattr(content, 'data'):
+            elif hasattr(content, "data"):
                 output_parts.append(str(content.data))
 
         output = "\n".join(output_parts)
-        is_error = getattr(result, 'isError', False)
+        is_error = getattr(result, "isError", False)
 
         result_dict = {
             "stdout": output if not is_error else "",
@@ -322,7 +346,9 @@ class McpManager:
                     "function": {
                         "name": qualified,
                         "description": f"[MCP:{label}] {tool['description']}",
-                        "parameters": tool.get("input_schema", {"type": "object", "properties": {}}),
+                        "parameters": tool.get(
+                            "input_schema", {"type": "object", "properties": {}}
+                        ),
                     },
                 }
                 schemas.append(schema)
@@ -336,14 +362,16 @@ class McpManager:
             conn = self._connections.get(server_id, {})
             disabled = (disabled_map or {}).get(server_id, set())
             for tool in tools:
-                result.append({
-                    "server_id": server_id,
-                    "server_name": conn.get("name", server_id),
-                    "name": tool["name"],
-                    "qualified_name": f"mcp__{server_id}__{tool['name']}",
-                    "description": tool.get("description", ""),
-                    "is_disabled": tool["name"] in disabled,
-                })
+                result.append(
+                    {
+                        "server_id": server_id,
+                        "server_name": conn.get("name", server_id),
+                        "name": tool["name"],
+                        "qualified_name": f"mcp__{server_id}__{tool['name']}",
+                        "description": tool.get("description", ""),
+                        "is_disabled": tool["name"] in disabled,
+                    }
+                )
         return result
 
     def is_builtin(self, server_id: str) -> bool:
@@ -366,16 +394,23 @@ class McpManager:
     _cached_prompt_desc = None
     _cached_prompt_desc_key = None
 
-    def get_tool_descriptions_for_prompt(self, disabled_map: Optional[Dict[str, set]] = None) -> str:
+    def get_tool_descriptions_for_prompt(
+        self, disabled_map: Optional[Dict[str, set]] = None
+    ) -> str:
         """Generate text describing MCP tools for the agent system prompt. Cached."""
-        cache_key = (frozenset((k, frozenset(v)) for k, v in (disabled_map or {}).items()), len(self._tools))
+        cache_key = (
+            frozenset((k, frozenset(v)) for k, v in (disabled_map or {}).items()),
+            len(self._tools),
+        )
         if self._cached_prompt_desc is not None and self._cached_prompt_desc_key == cache_key:
             return self._cached_prompt_desc
         tools = self.get_all_tools(disabled_map)
         if not tools:
             return ""
 
-        lines = ["\n\nYou also have access to external MCP tool servers. These tools are called via native function calling:"]
+        lines = [
+            "\n\nYou also have access to external MCP tool servers. These tools are called via native function calling:"
+        ]
         by_server = {}
         for t in tools:
             # Skip builtin Python servers — they're already in the agent prompt
@@ -400,7 +435,11 @@ class McpManager:
             lines.append(f"\n**{label}:**")
             for t in server_tools:
                 # Truncate long descriptions
-                desc = t['description'][:120] + '...' if len(t['description']) > 120 else t['description']
+                desc = (
+                    t["description"][:120] + "..."
+                    if len(t["description"]) > 120
+                    else t["description"]
+                )
                 lines.append(f"  - {t['qualified_name']}: {desc}")
 
         result = "\n".join(lines)

@@ -21,17 +21,21 @@ def _strip_list_prefix(text: str) -> str:
         return text
     return _LIST_PREFIX_RE.sub("", text, count=1).strip()
 
+
 from services.memory import MemoryManager
 from core.session_manager import SessionManager
 from src.request_models import MemoryAddRequest
-from core.database import SessionLocal
+from core.database import get_db_session
 from src.llm_core import llm_call_async
 from services.memory.memory_extractor import audit_memories
 from src.auth_helpers import get_current_user
 
 logger = logging.getLogger(__name__)
 
-def setup_memory_routes(memory_manager: MemoryManager, session_manager: SessionManager, memory_vector=None):
+
+def setup_memory_routes(
+    memory_manager: MemoryManager, session_manager: SessionManager, memory_vector=None
+):
     """Set up memory-related routes."""
     router = APIRouter(prefix="/api/memory", tags=["memory"])
 
@@ -61,17 +65,16 @@ def setup_memory_routes(memory_manager: MemoryManager, session_manager: SessionM
             "query": query,
             "total_memories": len(memories),
             "relevant_count": len(relevant),
-            "relevant_memories": [{"text": m["text"], "category": m.get("category", "unknown")}
-                                 for m in relevant]
+            "relevant_memories": [
+                {"text": m["text"], "category": m.get("category", "unknown")} for m in relevant
+            ],
         }
 
     @router.post("/add", response_model=Dict[str, Any])
-    async def api_add_memory(
-        request: Request,
-        memory_data: Optional[MemoryAddRequest] = None
-    ):
+    async def api_add_memory(request: Request, memory_data: Optional[MemoryAddRequest] = None):
         """Add a new memory entry with optional category, source, and session reference."""
         from src.auth_helpers import require_privilege
+
         require_privilege(request, "can_manage_memory")
         if memory_data is None:
             form = await request.form()
@@ -79,7 +82,7 @@ def setup_memory_routes(memory_manager: MemoryManager, session_manager: SessionM
                 text=form.get("text"),
                 category=form.get("category", "fact"),
                 source=form.get("source", "user"),
-                session_id=form.get("session_id")
+                session_id=form.get("session_id"),
             )
 
         user = _owner(request)
@@ -90,7 +93,9 @@ def setup_memory_routes(memory_manager: MemoryManager, session_manager: SessionM
         if memory_manager.find_duplicates(text, user_mem):
             return {"ok": True, "count": len(user_mem), "message": "Memory already exists"}
 
-        new_entry = memory_manager.add_entry(text, memory_data.source, memory_data.category, owner=user)
+        new_entry = memory_manager.add_entry(
+            text, memory_data.source, memory_data.category, owner=user
+        )
         if memory_data.session_id:
             new_entry["session_id"] = memory_data.session_id
         all_mem = memory_manager.load_all()
@@ -101,6 +106,7 @@ def setup_memory_routes(memory_manager: MemoryManager, session_manager: SessionM
             memory_vector.add(new_entry["id"], text)
         try:
             from src.event_bus import fire_event
+
             fire_event("memory_added", user)
         except Exception:
             logger.debug("memory_added event dispatch failed", exc_info=True)
@@ -113,7 +119,12 @@ def setup_memory_routes(memory_manager: MemoryManager, session_manager: SessionM
         return {"memory": memory_manager.load(owner=user)}
 
     @router.post("/search")
-    def search_memories(request: Request, query: str = Form(...), session_id: str = Form(None), category: str = Form(None)):
+    def search_memories(
+        request: Request,
+        query: str = Form(...),
+        session_id: str = Form(None),
+        category: str = Form(None),
+    ):
         """Search across all memories with optional filters."""
         user = _owner(request)
         memories = memory_manager.load(owner=user)
@@ -122,9 +133,13 @@ def setup_memory_routes(memory_manager: MemoryManager, session_manager: SessionM
             memories = [m for m in memories if m.get("session_id") == session_id]
 
         if category:
-            memories = [m for m in memories if category in m.get("categories", [m.get("category", "")])]
+            memories = [
+                m for m in memories if category in m.get("categories", [m.get("category", "")])
+            ]
 
-        relevant = memory_manager.get_relevant_memories(query, memories, threshold=0.05, max_items=20)
+        relevant = memory_manager.get_relevant_memories(
+            query, memories, threshold=0.05, max_items=20
+        )
 
         return {"memories": relevant, "total": len(relevant), "query": query}
 
@@ -184,7 +199,7 @@ def setup_memory_routes(memory_manager: MemoryManager, session_manager: SessionM
             "session_id": session_id,
             "session_name": session_name,
             "memory_count": len(session_memories),
-            "memories": session_memories
+            "memories": session_memories,
         }
 
     @router.post("/extract")
@@ -221,11 +236,15 @@ def setup_memory_routes(memory_manager: MemoryManager, session_manager: SessionM
             try:
                 suggestions = json.loads(suggestion_text)
                 if isinstance(suggestions, list):
-                    suggestions = [s if isinstance(s, str) else s.get("text", "") for s in suggestions]
+                    suggestions = [
+                        s if isinstance(s, str) else s.get("text", "") for s in suggestions
+                    ]
                 else:
                     suggestions = []
             except json.JSONDecodeError:
-                suggestions = [line.strip() for line in suggestion_text.splitlines() if line.strip()]
+                suggestions = [
+                    line.strip() for line in suggestion_text.splitlines() if line.strip()
+                ]
 
             return {"suggestions": [s for s in suggestions if s]}
         except Exception as e:
@@ -252,26 +271,28 @@ def setup_memory_routes(memory_manager: MemoryManager, session_manager: SessionM
         ep_id = settings.get("default_endpoint_id", "")
         default_model = settings.get("default_model", "")
         if ep_id:
-            db = SessionLocal()
-            try:
-                ep = db.query(ModelEndpoint).filter(
-                    ModelEndpoint.id == ep_id, ModelEndpoint.is_enabled == True
-                ).first()
+            # Scoped session, released before the (long) LLM audit call below.
+            with get_db_session() as db:
+                ep = (
+                    db.query(ModelEndpoint)
+                    .filter(ModelEndpoint.id == ep_id, ModelEndpoint.is_enabled == True)
+                    .first()
+                )
                 if ep:
                     base = _normalize_base(ep.base_url)
                     endpoint_url = build_chat_url(base)
                     model = default_model
                     if not model and ep.models:
                         try:
-                            models = _json.loads(ep.models) if isinstance(ep.models, str) else ep.models
+                            models = (
+                                _json.loads(ep.models) if isinstance(ep.models, str) else ep.models
+                            )
                             if models:
                                 model = models[0]
                         except Exception:
                             pass
                     if ep.api_key:
                         headers = {"Authorization": f"Bearer {ep.api_key}"}
-            finally:
-                db.close()
 
         # Fall back to session model if no default configured
         if not endpoint_url and session:
@@ -312,12 +333,11 @@ def setup_memory_routes(memory_manager: MemoryManager, session_manager: SessionM
 
     @router.post("/import")
     async def import_memories_from_file(
-        request: Request,
-        session: str = Form(...),
-        file: UploadFile = File(...)
+        request: Request, session: str = Form(...), file: UploadFile = File(...)
     ):
         """Extract memory suggestions from an uploaded file (PDF, TXT, MD, etc.)."""
         from src.auth_helpers import require_privilege
+
         require_privilege(request, "can_manage_memory")
         try:
             sess = session_manager.get_session(session)
@@ -336,6 +356,7 @@ def setup_memory_routes(memory_manager: MemoryManager, session_manager: SessionM
         # Extract text based on file type
         if ext == ".pdf":
             from src.document_processor import _process_pdf
+
             with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
                 tmp.write(content)
                 tmp_path = tmp.name
@@ -348,6 +369,7 @@ def setup_memory_routes(memory_manager: MemoryManager, session_manager: SessionM
                 text = content.decode("utf-8")
             except UnicodeDecodeError:
                 from charset_normalizer import detect
+
                 encoding = (detect(content) or {}).get("encoding") or "utf-8"
                 text = content.decode(encoding, errors="replace")
 
@@ -370,15 +392,19 @@ def setup_memory_routes(memory_manager: MemoryManager, session_manager: SessionM
                 direct = []
                 for item in parsed:
                     if isinstance(item, dict) and item.get("text"):
-                        direct.append({
-                            "text": _strip_list_prefix(str(item["text"])),
-                            "category": item.get("category") or "fact",
-                        })
+                        direct.append(
+                            {
+                                "text": _strip_list_prefix(str(item["text"])),
+                                "category": item.get("category") or "fact",
+                            }
+                        )
                     elif isinstance(item, str) and item.strip():
-                        direct.append({
-                            "text": _strip_list_prefix(item.strip()),
-                            "category": "fact",
-                        })
+                        direct.append(
+                            {
+                                "text": _strip_list_prefix(item.strip()),
+                                "category": "fact",
+                            }
+                        )
                 if direct:
                     return {"suggestions": direct, "filename": filename}
 
@@ -442,8 +468,15 @@ def setup_memory_routes(memory_manager: MemoryManager, session_manager: SessionM
         except json.JSONDecodeError:
             # Fallback: split by lines, stripping any "1.", "2)" markdown-list
             # numbering the model added so saved memories don't keep the prefix.
-            lines = [_strip_list_prefix(l.strip()) for l in raw.splitlines() if l.strip() and len(l.strip()) > 5]
-            return {"suggestions": [{"text": l, "category": "fact"} for l in lines[:20]], "filename": filename}
+            lines = [
+                _strip_list_prefix(l.strip())
+                for l in raw.splitlines()
+                if l.strip() and len(l.strip()) > 5
+            ]
+            return {
+                "suggestions": [{"text": l, "category": "fact"} for l in lines[:20]],
+                "filename": filename,
+            }
         except Exception as e:
             logger.error(f"Memory import extraction failed: {e}")
             raise HTTPException(502, f"LLM extraction failed: {str(e)}")
@@ -474,7 +507,9 @@ def setup_memory_routes(memory_manager: MemoryManager, session_manager: SessionM
         raise HTTPException(404, "Memory not found")
 
     @router.put("/{memory_id}")
-    def update_memory(request: Request, memory_id: str, text: str = Form(...), category: str = Form(None)):
+    def update_memory(
+        request: Request, memory_id: str, text: str = Form(...), category: str = Form(None)
+    ):
         """Update an existing memory item with new text and optional category."""
         user = _owner(request)
         all_mem = memory_manager.load_all()

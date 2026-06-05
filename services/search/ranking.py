@@ -3,27 +3,57 @@
 import re
 import logging
 from datetime import datetime
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
 
 logger = logging.getLogger(__name__)
 
 _NEWS_HINTS = {"news", "nyheter", "headlines", "breaking", "latest", "today", "idag"}
 _SPORTS_HINTS = {
-    "sport", "sports", "soccer", "football", "hockey", "nba", "nfl", "mlb",
-    "fifa", "world cup", "championship", "quarterfinal", "eliminates",
+    "sport",
+    "sports",
+    "soccer",
+    "football",
+    "hockey",
+    "nba",
+    "nfl",
+    "mlb",
+    "fifa",
+    "world cup",
+    "championship",
+    "quarterfinal",
+    "eliminates",
 }
 _LOW_VALUE_NEWS_DOMAINS = {
-    "facebook.com", "www.facebook.com", "sports.yahoo.com", "yahoo.com",
-    "www.yahoo.com", "msn.com", "www.msn.com",
+    "facebook.com",
+    "www.facebook.com",
+    "sports.yahoo.com",
+    "yahoo.com",
+    "www.yahoo.com",
+    "msn.com",
+    "www.msn.com",
 }
 _TRUSTED_NEWS_DOMAINS = {
-    "apnews.com", "www.apnews.com", "reuters.com", "www.reuters.com",
-    "bbc.com", "www.bbc.com", "cbc.ca", "www.cbc.ca",
-    "ctvnews.ca", "www.ctvnews.ca", "globalnews.ca", "www.globalnews.ca",
+    "apnews.com",
+    "www.apnews.com",
+    "reuters.com",
+    "www.reuters.com",
+    "bbc.com",
+    "www.bbc.com",
+    "cbc.ca",
+    "www.cbc.ca",
+    "ctvnews.ca",
+    "www.ctvnews.ca",
+    "globalnews.ca",
+    "www.globalnews.ca",
     "theguardian.com",
-    "www.theguardian.com", "euronews.com", "www.euronews.com",
-    "dw.com", "www.dw.com", "government.se", "www.government.se",
+    "www.theguardian.com",
+    "euronews.com",
+    "www.euronews.com",
+    "dw.com",
+    "www.dw.com",
+    "government.se",
+    "www.government.se",
 }
 
 
@@ -34,7 +64,7 @@ def _domain(url: str) -> str:
         return ""
 
 
-def rank_search_results(query: str, results: List[dict]) -> List[dict]:
+def rank_search_results(query: str, results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """Rank search results by title relevance, snippet quality, domain authority, and recency."""
     query_terms = [t.lower() for t in re.findall(r"\b\w+\b", query)]
     query_lc = query.lower()
@@ -94,7 +124,9 @@ def rank_search_results(query: str, results: List[dict]) -> List[dict]:
         adjustment = 0.0
         if netloc in _TRUSTED_NEWS_DOMAINS:
             adjustment += 1.2
-        if any(term in text for term in ("latest news", "breaking news", "daily coverage", "news from")):
+        if any(
+            term in text for term in ("latest news", "breaking news", "daily coverage", "news from")
+        ):
             adjustment += 0.4
         if netloc in _LOW_VALUE_NEWS_DOMAINS:
             adjustment -= 0.8

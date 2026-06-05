@@ -17,6 +17,7 @@ from pydantic import BaseModel
 
 from core.middleware import require_admin
 from core.platform_compat import IS_WINDOWS, safe_chmod, which_tool
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -50,6 +51,7 @@ def _find_bw() -> str:
     ):
         if "*" in candidate:
             import glob
+
             for m in glob.glob(candidate):
                 if os.path.isfile(m) and os.access(m, os.X_OK):
                     return m
@@ -75,7 +77,9 @@ def _save_config(cfg: dict):
     safe_chmod(str(VAULT_FILE), 0o600)
 
 
-async def _run_bw(args: list, session: str = None, input_text: str = None) -> tuple:
+async def _run_bw(
+    args: list, session: Optional[str] = None, input_text: Optional[str] = None
+) -> tuple:
     env = {}
     env.update(os.environ)
     if session:
@@ -83,7 +87,8 @@ async def _run_bw(args: list, session: str = None, input_text: str = None) -> tu
     bw_path = _find_bw()
     try:
         proc = await asyncio.create_subprocess_exec(
-            bw_path, *args,
+            bw_path,
+            *args,
             stdin=asyncio.subprocess.PIPE if input_text else None,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
@@ -97,7 +102,11 @@ async def _run_bw(args: list, session: str = None, input_text: str = None) -> tu
         stdout, stderr = await proc.communicate(input=input_text.encode() if input_text else None)
     except Exception as e:
         return "", f"bw subprocess error: {e}", 1
-    return stdout.decode(errors="replace").strip(), stderr.decode(errors="replace").strip(), proc.returncode
+    return (
+        stdout.decode(errors="replace").strip(),
+        stderr.decode(errors="replace").strip(),
+        proc.returncode,
+    )
 
 
 class VaultConfig(BaseModel):
@@ -219,7 +228,8 @@ def setup_vault_routes():
 async def _check_bw_installed() -> bool:
     try:
         proc = await asyncio.create_subprocess_exec(
-            _find_bw(), "--version",
+            _find_bw(),
+            "--version",
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )

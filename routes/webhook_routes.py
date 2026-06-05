@@ -6,10 +6,11 @@ import logging
 from typing import Optional
 
 import httpx
-from fastapi import APIRouter, HTTPException, Request, Form
+from fastapi import APIRouter, Depends, HTTPException, Request, Form
+from sqlalchemy.orm import Session as OrmSession
 from pydantic import BaseModel, Field
 
-from core.database import SessionLocal, Webhook
+from core.database import Webhook, get_db, get_db_session
 from src.webhook_manager import WebhookManager, validate_webhook_url, validate_events
 
 logger = logging.getLogger(__name__)
@@ -34,28 +35,26 @@ def setup_webhook_routes(
 ) -> APIRouter:
 
     @router.get("/webhooks")
-    def list_webhooks(request: Request):
+    def list_webhooks(request: Request, db: OrmSession = Depends(get_db)):
         _require_admin(request)
-        db = SessionLocal()
-        try:
-            hooks = db.query(Webhook).all()
-            return [
-                {
-                    "id": w.id,
-                    "name": w.name,
-                    "url": w.url,
-                    "has_secret": bool(w.secret),
-                    "events": w.events.split(",") if w.events else [],
-                    "is_active": w.is_active,
-                    "last_triggered_at": w.last_triggered_at.isoformat() if w.last_triggered_at else None,
-                    "last_status_code": w.last_status_code,
-                    "last_error": w.last_error,
-                    "created_at": w.created_at.isoformat() if w.created_at else None,
-                }
-                for w in hooks
-            ]
-        finally:
-            db.close()
+        hooks = db.query(Webhook).all()
+        return [
+            {
+                "id": w.id,
+                "name": w.name,
+                "url": w.url,
+                "has_secret": bool(w.secret),
+                "events": w.events.split(",") if w.events else [],
+                "is_active": w.is_active,
+                "last_triggered_at": w.last_triggered_at.isoformat()
+                if w.last_triggered_at
+                else None,
+                "last_status_code": w.last_status_code,
+                "last_error": w.last_error,
+                "created_at": w.created_at.isoformat() if w.created_at else None,
+            }
+            for w in hooks
+        ]
 
     @router.post("/webhooks")
     def create_webhook(
@@ -64,6 +63,7 @@ def setup_webhook_routes(
         url: str = Form(""),
         secret: str = Form(""),
         events: str = Form(""),
+        db: OrmSession = Depends(get_db),
     ):
         _require_admin(request)
         name = name.strip()[:MAX_NAME_LEN]
@@ -87,62 +87,50 @@ def setup_webhook_routes(
             encrypted_secret = secret_val  # Fallback if no encryption available
 
         webhook_id = str(uuid.uuid4())[:8]
-        db = SessionLocal()
-        try:
-            db.add(Webhook(
+        db.add(
+            Webhook(
                 id=webhook_id,
                 name=name,
                 url=url,
                 secret=encrypted_secret,
                 events=events,
                 is_active=True,
-            ))
-            db.commit()
-        finally:
-            db.close()
+            )
+        )
+        db.commit()
 
         return {"id": webhook_id, "name": name}
 
     @router.post("/webhooks/{webhook_id}/test")
     async def test_webhook(request: Request, webhook_id: str):
         _require_admin(request)
-        db = SessionLocal()
-        try:
+        # Scoped fetch — released before the outbound test delivery (network).
+        with get_db_session() as db:
             wh = db.query(Webhook).filter(Webhook.id == webhook_id).first()
             if not wh:
                 raise HTTPException(404, "Webhook not found")
             url, secret = wh.url, wh.secret
-        finally:
-            db.close()
 
         await webhook_manager.deliver_test(webhook_id, url, secret)
         return {"status": "sent"}
 
     @router.patch("/webhooks/{webhook_id}")
-    def toggle_webhook(request: Request, webhook_id: str):
+    def toggle_webhook(request: Request, webhook_id: str, db: OrmSession = Depends(get_db)):
         _require_admin(request)
-        db = SessionLocal()
-        try:
-            wh = db.query(Webhook).filter(Webhook.id == webhook_id).first()
-            if not wh:
-                raise HTTPException(404, "Webhook not found")
-            wh.is_active = not wh.is_active
-            db.commit()
-            return {"id": webhook_id, "is_active": wh.is_active}
-        finally:
-            db.close()
+        wh = db.query(Webhook).filter(Webhook.id == webhook_id).first()
+        if not wh:
+            raise HTTPException(404, "Webhook not found")
+        wh.is_active = not wh.is_active
+        db.commit()
+        return {"id": webhook_id, "is_active": wh.is_active}
 
     @router.delete("/webhooks/{webhook_id}")
-    def delete_webhook(request: Request, webhook_id: str):
+    def delete_webhook(request: Request, webhook_id: str, db: OrmSession = Depends(get_db)):
         _require_admin(request)
-        db = SessionLocal()
-        try:
-            deleted = db.query(Webhook).filter(Webhook.id == webhook_id).delete()
-            db.commit()
-            if not deleted:
-                raise HTTPException(404, "Webhook not found")
-        finally:
-            db.close()
+        deleted = db.query(Webhook).filter(Webhook.id == webhook_id).delete()
+        db.commit()
+        if not deleted:
+            raise HTTPException(404, "Webhook not found")
         return {"status": "deleted"}
 
     # ================================================================
@@ -204,7 +192,12 @@ def setup_webhook_routes(
         from core.models import ChatMessage
         from src.llm_core import llm_call_async
         from core.database import ModelEndpoint
-        from src.endpoint_resolver import build_chat_url, build_headers, build_models_url, normalize_base
+        from src.endpoint_resolver import (
+            build_chat_url,
+            build_headers,
+            build_models_url,
+            normalize_base,
+        )
 
         message = body.message.strip()
         if not message:
@@ -225,6 +218,7 @@ def setup_webhook_routes(
             # middleware); fall back to require_user if not present.
             try:
                 from src.auth_helpers import get_current_user as _gcu
+
                 _tok_user = token_owner or getattr(request.state, "user", None) or _gcu(request)
             except Exception:
                 _tok_user = None
@@ -242,9 +236,11 @@ def setup_webhook_routes(
             if not base_url:
                 base_url = _resolve_base_url(model, body.provider)
             if not base_url:
-                raise HTTPException(400,
+                raise HTTPException(
+                    400,
                     "Could not auto-detect provider. Pass base_url (e.g. 'https://api.deepseek.com/v1') "
-                    "or provider ('deepseek', 'openai', 'groq', etc.)")
+                    "or provider ('deepseek', 'openai', 'groq', etc.)",
+                )
 
             base_url = normalize_base(base_url)
             endpoint_url = build_chat_url(base_url)
@@ -254,8 +250,11 @@ def setup_webhook_routes(
 
             sid = str(uuid.uuid4())
             sess = session_manager.create_session(
-                session_id=sid, name="API Chat", endpoint_url=endpoint_url,
-                model=model, owner=token_owner,
+                session_id=sid,
+                name="API Chat",
+                endpoint_url=endpoint_url,
+                model=model,
+                owner=token_owner,
             )
             sess.headers = build_headers(api_key, base_url)
             session_manager.save_sessions()
@@ -263,16 +262,16 @@ def setup_webhook_routes(
 
         # --- Case 3: Fall back to first configured ModelEndpoint ---
         if not sess:
-            db = SessionLocal()
-            try:
+            # Scoped fetch — released before the outbound LLM call below.
+            with get_db_session() as db:
                 ep = db.query(ModelEndpoint).filter(ModelEndpoint.is_enabled == True).first()
-            finally:
-                db.close()
 
             if not ep:
-                raise HTTPException(400,
+                raise HTTPException(
+                    400,
                     "No session, api_key, or configured endpoints. "
-                    "Pass api_key + model, or configure an endpoint in Admin.")
+                    "Pass api_key + model, or configure an endpoint in Admin.",
+                )
 
             base_url = normalize_base(ep.base_url)
             endpoint_url = build_chat_url(base_url)
@@ -303,8 +302,11 @@ def setup_webhook_routes(
 
             sid = str(uuid.uuid4())
             sess = session_manager.create_session(
-                session_id=sid, name="API Chat", endpoint_url=endpoint_url,
-                model=model, owner=token_owner,
+                session_id=sid,
+                name="API Chat",
+                endpoint_url=endpoint_url,
+                model=model,
+                owner=token_owner,
             )
             if api_key:
                 sess.headers = build_headers(api_key, base_url)
@@ -317,16 +319,26 @@ def setup_webhook_routes(
         messages = [{"role": m.role, "content": m.content} for m in sess.history]
 
         reply = await llm_call_async(
-            sess.endpoint_url, sess.model, messages,
-            headers=sess.headers, timeout=120,
+            sess.endpoint_url,
+            sess.model,
+            messages,
+            headers=sess.headers,
+            timeout=120,
         )
         sess.add_message(ChatMessage("assistant", reply))
         session_manager.save_sessions()
 
-        asyncio.create_task(webhook_manager.fire("chat.completed", {
-            "session_id": session_id, "model": sess.model,
-            "user_message": message[:2000], "response": reply[:2000],
-        }))
+        asyncio.create_task(
+            webhook_manager.fire(
+                "chat.completed",
+                {
+                    "session_id": session_id,
+                    "model": sess.model,
+                    "user_message": message[:2000],
+                    "response": reply[:2000],
+                },
+            )
+        )
 
         return {"response": reply, "session_id": session_id, "model": sess.model}
 

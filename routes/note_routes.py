@@ -6,10 +6,11 @@ import uuid
 import logging
 from typing import Dict, Any, Optional
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
+from sqlalchemy.orm import Session as OrmSession
 
-from core.database import SessionLocal, Note
+from core.database import Note, get_db
 from src.auth_helpers import get_current_user
 from sqlalchemy.orm.attributes import flag_modified
 
@@ -19,6 +20,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # Request models
 # ---------------------------------------------------------------------------
+
 
 class NoteCreate(BaseModel):
     title: str = ""
@@ -55,6 +57,7 @@ class NoteUpdate(BaseModel):
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _note_to_dict(note: Note) -> Dict[str, Any]:
     items = None
@@ -95,7 +98,6 @@ def _note_to_dict(note: Note) -> Dict[str, Any]:
     }
 
 
-
 # ---------------------------------------------------------------------------
 # Reminder dispatch — module-level so background tasks (built-in actions)
 # can call it directly without an HTTP roundtrip + auth cookie. The route
@@ -129,6 +131,7 @@ async def dispatch_reminder(
     nothing is "sent" synchronously for it — the channel just routes there.
     """
     from src.settings import load_settings
+
     settings = load_settings()
     channel = settings.get("reminder_channel", "browser")
     llm_on = bool(settings.get("reminder_llm_synthesis", False))
@@ -142,7 +145,10 @@ async def dispatch_reminder(
             import json as _json
             from datetime import datetime as _dt, timezone as _tz, timedelta as _td
             from pathlib import Path as _P
-            _slug = "".join(c if (c.isalnum() or c in "-_.@") else "_" for c in (owner or "default"))
+
+            _slug = "".join(
+                c if (c.isalnum() or c in "-_.@") else "_" for c in (owner or "default")
+            )
             cache_path = _P(f"data/note_pings_{_slug}.json")
             if cache_path.exists():
                 cache = _json.loads(cache_path.read_text(encoding="utf-8"))
@@ -179,19 +185,28 @@ async def dispatch_reminder(
         try:
             from src.endpoint_resolver import resolve_endpoint
             from src.llm_core import llm_call_async
+
             url, model, headers = resolve_endpoint("utility")
             if not url:
                 url, model, headers = resolve_endpoint("default")
             if url and model:
                 raw = await llm_call_async(
-                    url=url, model=model,
+                    url=url,
+                    model=model,
                     messages=[
-                        {"role": "system", "content": "You are a reminder assistant. Write a single short, warm, motivating sentence (max 25 words) reminding the user about the note below. Do not add greetings, preamble, or hashtags. Output only the sentence."},
+                        {
+                            "role": "system",
+                            "content": "You are a reminder assistant. Write a single short, warm, motivating sentence (max 25 words) reminding the user about the note below. Do not add greetings, preamble, or hashtags. Output only the sentence.",
+                        },
                         {"role": "user", "content": f"Title: {title}\n\n{note_body}".strip()},
                     ],
-                    temperature=0.7, max_tokens=200, headers=headers, timeout=30,
+                    temperature=0.7,
+                    max_tokens=200,
+                    headers=headers,
+                    timeout=30,
                 )
                 from src.text_helpers import strip_think as _strip_think
+
                 # prose=True strips untagged "The user wants me to…" chain-of-thought.
                 # prompt_echo=True strips Qwen-style "Thinking Process:" / leaked
                 # prompt prefixes. Both are safe here because this is a
@@ -205,6 +220,7 @@ async def dispatch_reminder(
                 # last surviving line — that's the actual warm sentence.
                 if synthesis:
                     import re as _re
+
                     # Tightened: target ACTUAL self-talk (model narrating what
                     # it'll do) rather than any first-person sentence. The old
                     # pattern killed legit warm sentences like "I'll see you
@@ -245,7 +261,9 @@ async def dispatch_reminder(
                         _re.IGNORECASE,
                     )
                     lines = [ln for ln in synthesis.splitlines() if ln.strip()]
-                    cleaned = [ln for ln in lines if not _reasoning.match(ln) and not _echo.match(ln)]
+                    cleaned = [
+                        ln for ln in lines if not _reasoning.match(ln) and not _echo.match(ln)
+                    ]
                     if cleaned:
                         # The model's actual answer is normally the LAST surviving
                         # line — reasoning leads, answer trails.
@@ -256,10 +274,15 @@ async def dispatch_reminder(
             logger.warning(f"Reminder LLM synthesis failed: {e}")
             synthesis = _SYNTH_FAILED_TAG
         if synthesis:
-            _s = synthesis.strip(); _low = _s.lower()
-            if (not _s or _low.startswith("error:") or _low.startswith("[error")
-                    or "operation failed" in _low
-                    or ("upstream" in _low and "failed" in _low)) and synthesis != _SYNTH_FAILED_TAG:
+            _s = synthesis.strip()
+            _low = _s.lower()
+            if (
+                not _s
+                or _low.startswith("error:")
+                or _low.startswith("[error")
+                or "operation failed" in _low
+                or ("upstream" in _low and "failed" in _low)
+            ) and synthesis != _SYNTH_FAILED_TAG:
                 logger.warning(f"Reminder synthesis looked like an error, replacing: {_s[:120]!r}")
                 synthesis = _SYNTH_FAILED_TAG
 
@@ -271,6 +294,7 @@ async def dispatch_reminder(
             from email.mime.text import MIMEText
             from email.mime.multipart import MIMEMultipart
             from datetime import datetime as _dt
+
             # `reminder_email_account_id` lets the user pick WHICH email
             # account to send reminders from (when they have several
             # configured in Integrations). Falls back to the default
@@ -281,6 +305,7 @@ async def dispatch_reminder(
                 try:
                     from core.database import SessionLocal as _SL, EmailAccount as _EA
                     from sqlalchemy import and_, or_
+
                     db = _SL()
                     try:
                         q = db.query(_EA).filter(_EA.enabled == True)  # noqa: E712
@@ -290,7 +315,11 @@ async def dispatch_reminder(
                             q = q.filter(or_(_EA.owner == owner, and_(unowned, same_mailbox)))
                         for row in q.order_by(_EA.is_default.desc(), _EA.created_at.asc()).all():
                             trial = _get_email_config(account_id=row.id, owner=owner or "")
-                            if trial.get("smtp_host") and trial.get("smtp_user") and trial.get("smtp_password"):
+                            if (
+                                trial.get("smtp_host")
+                                and trial.get("smtp_user")
+                                and trial.get("smtp_password")
+                            ):
                                 cfg = trial
                                 break
                     finally:
@@ -322,14 +351,16 @@ async def dispatch_reminder(
                 email_error = "Missing " + ", ".join(missing)
                 logger.warning(
                     "Reminder email not sent for note_id=%s account=%r: %s",
-                    note_id, cfg.get("account_name"), email_error,
+                    note_id,
+                    cfg.get("account_name"),
+                    email_error,
                 )
             else:
                 msg = MIMEMultipart("alternative")
                 msg["From"] = from_addr
                 msg["To"] = recipient
-                _t = title or 'Note'
-                _t = _t[len('Reminder:'):].strip() if _t.lower().startswith('reminder:') else _t
+                _t = title or "Note"
+                _t = _t[len("Reminder:") :].strip() if _t.lower().startswith("reminder:") else _t
                 msg["Subject"] = f"Reminder (Odysseus): {_t}"
                 msg["Date"] = _dt.utcnow().strftime("%a, %d %b %Y %H:%M:%S +0000")
                 msg["X-Odysseus-Origin"] = "odysseus-ui"
@@ -351,9 +382,11 @@ async def dispatch_reminder(
 
                 def _smtp_send():
                     from routes.email_helpers import _send_smtp_message
+
                     _send_smtp_message(cfg, from_addr, [recipient], msg.as_string())
 
                 import asyncio as _aio
+
                 await _aio.to_thread(_smtp_send)
                 email_sent = True
         except Exception as e:
@@ -366,9 +399,13 @@ async def dispatch_reminder(
         try:
             from src.integrations import load_integrations
             import httpx
+
             intg = next(
-                (i for i in load_integrations()
-                 if i.get("preset") == "ntfy" and i.get("enabled", True) and i.get("base_url")),
+                (
+                    i
+                    for i in load_integrations()
+                    if i.get("preset") == "ntfy" and i.get("enabled", True) and i.get("base_url")
+                ),
                 None,
             )
             if intg:
@@ -396,7 +433,7 @@ async def dispatch_reminder(
     # popups. Lets the user see reminders inside the app even when the
     # primary channel is email/ntfy and the tab is open.
     browser_sent = False
-    local_browser_sent = (not queue_browser and channel == "browser")
+    local_browser_sent = not queue_browser and channel == "browser"
     if queue_browser and _scheduler_ref is not None:
         try:
             _scheduler_ref.add_notification(
@@ -420,15 +457,20 @@ async def dispatch_reminder(
             import json as _json
             from datetime import datetime as _dt, timezone as _tz
             from pathlib import Path as _P
+
             # Per-owner cache so the scanner's prune step on user A's run
             # doesn't drop user B's just-fired entry (review C4).
             _STATE = cache_path
             if _STATE is None:
-                _slug = "".join(c if (c.isalnum() or c in "-_.@") else "_" for c in (owner or "default"))
+                _slug = "".join(
+                    c if (c.isalnum() or c in "-_.@") else "_" for c in (owner or "default")
+                )
                 _STATE = _P(f"data/note_pings_{_slug}.json")
             _STATE.parent.mkdir(parents=True, exist_ok=True)
             try:
-                _cache = cache or (_json.loads(_STATE.read_text(encoding="utf-8")) if _STATE.exists() else {})
+                _cache = cache or (
+                    _json.loads(_STATE.read_text(encoding="utf-8")) if _STATE.exists() else {}
+                )
             except Exception:
                 _cache = {}
             sent_channel = "email" if email_sent else "ntfy" if ntfy_sent else "browser"
@@ -454,6 +496,7 @@ async def dispatch_reminder(
 # Router factory
 # ---------------------------------------------------------------------------
 
+
 def setup_note_routes(task_scheduler=None):
     # Expose the scheduler to module-level `dispatch_reminder` so reminders
     # can also push to the in-app notification queue (the polling system
@@ -473,205 +516,178 @@ def setup_note_routes(task_scheduler=None):
         request: Request,
         archived: Optional[bool] = None,
         label: Optional[str] = None,
+        db: OrmSession = Depends(get_db),
     ):
         user = _owner(request)
-        db = SessionLocal()
-        try:
-            q = db.query(Note)
-            if user is not None:
-                q = q.filter(Note.owner == user)
-            if archived is not None:
-                q = q.filter(Note.archived == archived)
-            else:
-                q = q.filter(Note.archived == False)
-            if label:
-                q = q.filter(Note.label == label)
-            # Archived view: most recently archived first. Active view: pin + manual order.
-            if archived is True:
-                notes = q.order_by(Note.updated_at.desc()).all()
-            else:
-                notes = q.order_by(Note.pinned.desc(), Note.sort_order.asc(), Note.updated_at.desc()).all()
-            return {"notes": [_note_to_dict(n) for n in notes]}
-        finally:
-            db.close()
+        q = db.query(Note)
+        if user is not None:
+            q = q.filter(Note.owner == user)
+        if archived is not None:
+            q = q.filter(Note.archived == archived)
+        else:
+            q = q.filter(Note.archived == False)
+        if label:
+            q = q.filter(Note.label == label)
+        # Archived view: most recently archived first. Active view: pin + manual order.
+        if archived is True:
+            notes = q.order_by(Note.updated_at.desc()).all()
+        else:
+            notes = q.order_by(
+                Note.pinned.desc(), Note.sort_order.asc(), Note.updated_at.desc()
+            ).all()
+        return {"notes": [_note_to_dict(n) for n in notes]}
 
     # --- CREATE ---
     @router.post("")
-    def create_note(request: Request, body: NoteCreate):
+    def create_note(request: Request, body: NoteCreate, db: OrmSession = Depends(get_db)):
         user = _owner(request)
-        db = SessionLocal()
-        try:
-            note = Note(
-                id=str(uuid.uuid4()),
-                owner=user,
-                title=body.title,
-                content=body.content,
-                items=json.dumps(body.items) if body.items is not None else None,
-                note_type=body.note_type,
-                color=body.color,
-                label=body.label,
-                pinned=body.pinned,
-                due_date=body.due_date,
-                source=body.source,
-                session_id=body.session_id,
-                image_url=body.image_url,
-                repeat=body.repeat or "none",
-                sort_order=body.sort_order if body.sort_order is not None else 0,
-            )
-            db.add(note)
-            db.commit()
-            db.refresh(note)
-            return _note_to_dict(note)
-        finally:
-            db.close()
+        note = Note(
+            id=str(uuid.uuid4()),
+            owner=user,
+            title=body.title,
+            content=body.content,
+            items=json.dumps(body.items) if body.items is not None else None,
+            note_type=body.note_type,
+            color=body.color,
+            label=body.label,
+            pinned=body.pinned,
+            due_date=body.due_date,
+            source=body.source,
+            session_id=body.session_id,
+            image_url=body.image_url,
+            repeat=body.repeat or "none",
+            sort_order=body.sort_order if body.sort_order is not None else 0,
+        )
+        db.add(note)
+        db.commit()
+        db.refresh(note)
+        return _note_to_dict(note)
 
     # --- GET ONE ---
     @router.get("/{note_id}")
-    def get_note(request: Request, note_id: str):
+    def get_note(request: Request, note_id: str, db: OrmSession = Depends(get_db)):
         user = _owner(request)
-        db = SessionLocal()
-        try:
-            note = db.query(Note).filter(Note.id == note_id).first()
-            if not note:
-                raise HTTPException(404, "Note not found")
-            # SECURITY: strict ownership — previously `note.owner and note.owner != user`
-            # let any user touch a row whose owner field was null/empty.
-            if user is not None and note.owner != user:
-                raise HTTPException(404, "Note not found")
-            return _note_to_dict(note)
-        finally:
-            db.close()
+        note = db.query(Note).filter(Note.id == note_id).first()
+        if not note:
+            raise HTTPException(404, "Note not found")
+        # SECURITY: strict ownership — previously `note.owner and note.owner != user`
+        # let any user touch a row whose owner field was null/empty.
+        if user is not None and note.owner != user:
+            raise HTTPException(404, "Note not found")
+        return _note_to_dict(note)
 
     # --- UPDATE ---
     @router.put("/{note_id}")
-    def update_note(request: Request, note_id: str, body: NoteUpdate):
+    def update_note(
+        request: Request, note_id: str, body: NoteUpdate, db: OrmSession = Depends(get_db)
+    ):
         user = _owner(request)
-        db = SessionLocal()
-        try:
-            note = db.query(Note).filter(Note.id == note_id).first()
-            if not note:
-                raise HTTPException(404, "Note not found")
-            # SECURITY: strict ownership — previously `note.owner and note.owner != user`
-            # let any user touch a row whose owner field was null/empty.
-            if user is not None and note.owner != user:
-                raise HTTPException(404, "Note not found")
+        note = db.query(Note).filter(Note.id == note_id).first()
+        if not note:
+            raise HTTPException(404, "Note not found")
+        # SECURITY: strict ownership — previously `note.owner and note.owner != user`
+        # let any user touch a row whose owner field was null/empty.
+        if user is not None and note.owner != user:
+            raise HTTPException(404, "Note not found")
 
-            if body.title is not None:
-                note.title = body.title
-            if body.content is not None:
-                note.content = body.content
-            if body.items is not None:
-                note.items = json.dumps(body.items)
-                flag_modified(note, "items")
-            if body.note_type is not None:
-                note.note_type = body.note_type
-            if body.color is not None:
-                note.color = body.color
-            if body.label is not None:
-                note.label = body.label
-            if body.pinned is not None:
-                note.pinned = body.pinned
-            if body.archived is not None:
-                note.archived = body.archived
-            if body.due_date is not None:
-                note.due_date = body.due_date
-            if body.image_url is not None:
-                note.image_url = body.image_url
-            if body.repeat is not None:
-                note.repeat = body.repeat
-            if body.sort_order is not None:
-                note.sort_order = body.sort_order
-            if body.agent_session_id is not None:
-                note.agent_session_id = body.agent_session_id
+        if body.title is not None:
+            note.title = body.title
+        if body.content is not None:
+            note.content = body.content
+        if body.items is not None:
+            note.items = json.dumps(body.items)
+            flag_modified(note, "items")
+        if body.note_type is not None:
+            note.note_type = body.note_type
+        if body.color is not None:
+            note.color = body.color
+        if body.label is not None:
+            note.label = body.label
+        if body.pinned is not None:
+            note.pinned = body.pinned
+        if body.archived is not None:
+            note.archived = body.archived
+        if body.due_date is not None:
+            note.due_date = body.due_date
+        if body.image_url is not None:
+            note.image_url = body.image_url
+        if body.repeat is not None:
+            note.repeat = body.repeat
+        if body.sort_order is not None:
+            note.sort_order = body.sort_order
+        if body.agent_session_id is not None:
+            note.agent_session_id = body.agent_session_id
 
-            db.commit()
-            db.refresh(note)
-            return _note_to_dict(note)
-        finally:
-            db.close()
+        db.commit()
+        db.refresh(note)
+        return _note_to_dict(note)
 
     # --- DELETE ---
     @router.delete("/{note_id}")
-    def delete_note(request: Request, note_id: str):
+    def delete_note(request: Request, note_id: str, db: OrmSession = Depends(get_db)):
         user = _owner(request)
-        db = SessionLocal()
-        try:
-            note = db.query(Note).filter(Note.id == note_id).first()
-            if not note:
-                raise HTTPException(404, "Note not found")
-            # SECURITY: strict ownership — previously `note.owner and note.owner != user`
-            # let any user touch a row whose owner field was null/empty.
-            if user is not None and note.owner != user:
-                raise HTTPException(404, "Note not found")
-            db.delete(note)
-            db.commit()
-            return {"ok": True}
-        finally:
-            db.close()
+        note = db.query(Note).filter(Note.id == note_id).first()
+        if not note:
+            raise HTTPException(404, "Note not found")
+        # SECURITY: strict ownership — previously `note.owner and note.owner != user`
+        # let any user touch a row whose owner field was null/empty.
+        if user is not None and note.owner != user:
+            raise HTTPException(404, "Note not found")
+        db.delete(note)
+        db.commit()
+        return {"ok": True}
 
     # --- TOGGLE PIN ---
     @router.post("/{note_id}/pin")
-    def toggle_pin(request: Request, note_id: str):
+    def toggle_pin(request: Request, note_id: str, db: OrmSession = Depends(get_db)):
         user = _owner(request)
-        db = SessionLocal()
-        try:
-            note = db.query(Note).filter(Note.id == note_id).first()
-            if not note:
-                raise HTTPException(404, "Note not found")
-            # SECURITY: strict ownership — previously `note.owner and note.owner != user`
-            # let any user touch a row whose owner field was null/empty.
-            if user is not None and note.owner != user:
-                raise HTTPException(404, "Note not found")
-            note.pinned = not note.pinned
-            db.commit()
-            return {"ok": True, "pinned": note.pinned}
-        finally:
-            db.close()
+        note = db.query(Note).filter(Note.id == note_id).first()
+        if not note:
+            raise HTTPException(404, "Note not found")
+        # SECURITY: strict ownership — previously `note.owner and note.owner != user`
+        # let any user touch a row whose owner field was null/empty.
+        if user is not None and note.owner != user:
+            raise HTTPException(404, "Note not found")
+        note.pinned = not note.pinned
+        db.commit()
+        return {"ok": True, "pinned": note.pinned}
 
     # --- TOGGLE ARCHIVE ---
     @router.post("/{note_id}/archive")
-    def toggle_archive(request: Request, note_id: str):
+    def toggle_archive(request: Request, note_id: str, db: OrmSession = Depends(get_db)):
         user = _owner(request)
-        db = SessionLocal()
-        try:
-            note = db.query(Note).filter(Note.id == note_id).first()
-            if not note:
-                raise HTTPException(404, "Note not found")
-            # SECURITY: strict ownership — previously `note.owner and note.owner != user`
-            # let any user touch a row whose owner field was null/empty.
-            if user is not None and note.owner != user:
-                raise HTTPException(404, "Note not found")
-            note.archived = not note.archived
-            db.commit()
-            return {"ok": True, "archived": note.archived}
-        finally:
-            db.close()
+        note = db.query(Note).filter(Note.id == note_id).first()
+        if not note:
+            raise HTTPException(404, "Note not found")
+        # SECURITY: strict ownership — previously `note.owner and note.owner != user`
+        # let any user touch a row whose owner field was null/empty.
+        if user is not None and note.owner != user:
+            raise HTTPException(404, "Note not found")
+        note.archived = not note.archived
+        db.commit()
+        return {"ok": True, "archived": note.archived}
 
     # --- TOGGLE CHECKLIST ITEM ---
     @router.post("/{note_id}/items/{index}/toggle")
-    def toggle_item(request: Request, note_id: str, index: int):
+    def toggle_item(request: Request, note_id: str, index: int, db: OrmSession = Depends(get_db)):
         user = _owner(request)
-        db = SessionLocal()
-        try:
-            note = db.query(Note).filter(Note.id == note_id).first()
-            if not note:
-                raise HTTPException(404, "Note not found")
-            # SECURITY: strict ownership — previously `note.owner and note.owner != user`
-            # let any user touch a row whose owner field was null/empty.
-            if user is not None and note.owner != user:
-                raise HTTPException(404, "Note not found")
-            if not note.items:
-                raise HTTPException(400, "Note has no checklist items")
-            items = json.loads(note.items)
-            if index < 0 or index >= len(items):
-                raise HTTPException(400, f"Item index {index} out of range")
-            items[index]["done"] = not items[index].get("done", False)
-            note.items = json.dumps(items)
-            flag_modified(note, "items")
-            db.commit()
-            return {"ok": True, "items": items}
-        finally:
-            db.close()
+        note = db.query(Note).filter(Note.id == note_id).first()
+        if not note:
+            raise HTTPException(404, "Note not found")
+        # SECURITY: strict ownership — previously `note.owner and note.owner != user`
+        # let any user touch a row whose owner field was null/empty.
+        if user is not None and note.owner != user:
+            raise HTTPException(404, "Note not found")
+        if not note.items:
+            raise HTTPException(400, "Note has no checklist items")
+        items = json.loads(note.items)
+        if index < 0 or index >= len(items):
+            raise HTTPException(400, f"Item index {index} out of range")
+        items[index]["done"] = not items[index].get("done", False)
+        note.items = json.dumps(items)
+        flag_modified(note, "items")
+        db.commit()
+        return {"ok": True, "items": items}
 
     # --- FIRE REMINDER ---
     @router.post("/fire-reminder")
@@ -684,6 +700,7 @@ def setup_note_routes(task_scheduler=None):
         """
         # Gate against anonymous callers — LLM synthesis can burn tokens.
         from src.auth_helpers import get_current_user as _gcu
+
         if not _gcu(request):
             raise HTTPException(401, "Not authenticated")
         body = await request.json()
@@ -696,14 +713,16 @@ def setup_note_routes(task_scheduler=None):
         # Delegate to the module-level helper so background tasks can reuse
         # the same dispatch without an HTTP roundtrip + auth cookie.
         return await dispatch_reminder(
-            title=title, note_body=note_body, note_id=note_id,
+            title=title,
+            note_body=note_body,
+            note_id=note_id,
             owner=_gcu(request) or "",
             queue_browser=False,
         )
 
     # --- REORDER NOTES ---
     @router.post("/reorder")
-    async def reorder_notes(request: Request):
+    async def reorder_notes(request: Request, db: OrmSession = Depends(get_db)):
         """Update sort_order for a list of note IDs in the order provided."""
         user = _owner(request)
         body = await request.json()
@@ -718,24 +737,21 @@ def setup_note_routes(task_scheduler=None):
         # explicit and gated on AuthManager.is_configured.
         try:
             from core.auth import AuthManager
+
             _allow_null = not AuthManager().is_configured
         except Exception:
             _allow_null = False
-        db = SessionLocal()
-        try:
-            for i, nid in enumerate(ids):
-                q = db.query(Note).filter(Note.id == nid)
-                if user is not None:
-                    if _allow_null:
-                        q = q.filter((Note.owner == user) | (Note.owner == None))  # noqa: E711
-                    else:
-                        q = q.filter(Note.owner == user)
-                note = q.first()
-                if note:
-                    note.sort_order = i
-            db.commit()
-            return {"ok": True, "count": len(ids)}
-        finally:
-            db.close()
+        for i, nid in enumerate(ids):
+            q = db.query(Note).filter(Note.id == nid)
+            if user is not None:
+                if _allow_null:
+                    q = q.filter((Note.owner == user) | (Note.owner == None))  # noqa: E711
+                else:
+                    q = q.filter(Note.owner == user)
+            note = q.first()
+            if note:
+                note.sort_order = i
+        db.commit()
+        return {"ok": True, "count": len(ids)}
 
     return router

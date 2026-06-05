@@ -1,0 +1,139 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Lint (ruff)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install ruff
+      - name: ruff check
+        run: ruff check --output-format=github .
+      - name: ruff format --check
+        run: ruff format --check .
+
+  test:
+    name: Tests (py${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt -r requirements-dev.txt
+      - name: Run tests
+        run: pytest -q --cov --cov-report=term-missing --cov-report=xml
+      - name: Run integration tests
+        # Separate process: integration tests boot the full app and can't share
+        # interpreter state with the unit tests (which stub heavy deps).
+        run: pytest -m integration tests/integration -q
+      - name: Coverage summary
+        if: ${{ always() }}
+        run: |
+          echo "### Coverage (py${{ matrix.python-version }})" >> "$GITHUB_STEP_SUMMARY"
+          python -m coverage report --format=markdown >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload coverage XML
+        if: ${{ matrix.python-version == '3.11' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-xml
+          path: coverage.xml
+          if-no-files-found: warn
+
+  typecheck-strict:
+    name: Type check (mypy --strict, enforced modules)
+    runs-on: ubuntu-latest
+    # BLOCKING. Scoped to the strict-clean module set declared in pyproject.toml
+    # ([[tool.mypy.overrides]]). --follow-imports=skip isolates each listed file
+    # (imports are treated as Any) so the gate validates each module's own
+    # annotations without leaking errors from the untyped modules it imports —
+    # this is what lets the set grow module by module. Grow the list as more
+    # modules become strict-clean.
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install mypy
+      - name: mypy --strict (enforced modules)
+        run: |
+          mypy --strict --ignore-missing-imports --follow-imports=skip \
+            src/action_intents.py \
+            src/app_helpers.py \
+            src/constants.py \
+            src/database.py \
+            src/exceptions.py \
+            src/goal_based_extractor.py \
+            src/model_context.py \
+            src/prompt_security.py \
+            src/rate_limiter.py \
+            src/session_actions.py \
+            src/text_helpers.py \
+            src/tool_schemas.py \
+            src/tool_security.py \
+            core/atomic_io.py \
+            core/constants.py \
+            core/exceptions.py \
+            core/platform_compat.py \
+            services/search/query.py \
+            services/memory/service.py \
+            services/search/analytics.py \
+            services/search/cache.py \
+            services/search/ranking.py \
+            services/youtube/youtube_handler.py \
+            src/bg_jobs.py \
+            src/integrations.py \
+            src/research_utils.py \
+            src/tool_parsing.py \
+            src/youtube_handler.py \
+            src/agent_tools.py \
+            src/assistant_log.py \
+            src/auth_helpers.py \
+            src/chroma_client.py \
+            src/model_discovery.py
+
+  typecheck:
+    name: Type check (mypy, whole tree)
+    runs-on: ubuntu-latest
+    # Informational only — tracks the broader typing debt while the strict set
+    # above ratchets up. The step never fails the check (|| true) so it reports
+    # green on the PR; read the log/summary for the current error count. See
+    # docs/plans/03-ci-pipeline.md.
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install mypy
+      - name: mypy (whole tree, informational)
+        run: |
+          mypy src core | tee mypy-wholetree.txt || true
+          echo "### mypy whole-tree (informational)" >> "$GITHUB_STEP_SUMMARY"
+          tail -1 mypy-wholetree.txt >> "$GITHUB_STEP_SUMMARY"
+
