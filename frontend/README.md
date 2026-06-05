@@ -187,8 +187,9 @@ Configured in `src-tauri/` (Rust shell):
 
 1. ✅ **Tasks** — pilot (this PR): list, create/edit, delete, run-now,
    pause/resume, schedule labels.
-2. ✅ **Sessions** — chat list: search, sort, folder grouping, star/rename/
-   archive/delete, read-only history preview.
+2. ✅ **Sessions** — active list (search, sort, folders, star/rename/archive/
+   delete, bulk select, auto-sort) + archived view (server search/sort,
+   paginated, unarchive/export/delete) + history drawer with export & compact.
 3. ✅ **Memory** — flat CRUD (list, create, inline edit, pin, delete) with
    search, category filter, sort. First Tailwind-styled page.
 4. ✅ **Notes** — board with notes & checklists: create/edit, pin, archive,

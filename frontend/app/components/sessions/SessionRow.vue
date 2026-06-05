@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import type { Session } from '~/types/sessions'
 
-const props = defineProps<{ session: Session; busy?: boolean; active?: boolean }>()
+const props = defineProps<{ session: Session; busy?: boolean; active?: boolean; selectable?: boolean; selected?: boolean }>()
 const emit = defineEmits<{
   open: [id: string]
   star: [id: string]
   rename: [id: string, name: string]
   archive: [id: string]
   remove: [id: string]
+  toggleSelect: [id: string]
 }>()
 
 const editing = ref(false)
@@ -36,6 +37,13 @@ const actionBtn = 'rounded-md border border-border bg-panel2 px-1.5 py-0.5 leadi
     class="flex items-center gap-2 rounded-lg border bg-panel px-2.5 py-2 transition-colors"
     :class="[active ? 'border-accent' : 'border-border', busy ? 'opacity-55 pointer-events-none' : '']"
   >
+    <input
+      v-if="selectable"
+      type="checkbox"
+      class="shrink-0 accent-accent"
+      :checked="selected"
+      @click.stop="emit('toggleSelect', session.id)"
+    />
     <button
       class="shrink-0 px-0.5 text-[15px] leading-none"
       :class="session.is_important ? 'text-amber' : 'text-muted hover:text-fg'"

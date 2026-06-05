@@ -4,10 +4,26 @@ import type { ChatMessage, MessageRole } from '~/types/sessions'
 const props = defineProps<{ sessionId: string; title: string }>()
 const emit = defineEmits<{ close: [] }>()
 
-const { fetchHistory } = useSessions()
+const { fetchHistory, exportSession, compactSession } = useSessions()
 const messages = ref<ChatMessage[]>([])
 const loading = ref(false)
 const error = ref<string | null>(null)
+const busy = ref(false)
+
+async function onExport(fmt: 'md' | 'txt' | 'json' | 'html') {
+  busy.value = true
+  try { await exportSession(props.sessionId, fmt) }
+  catch (e) { error.value = e instanceof Error ? e.message : 'Export failed' }
+  finally { busy.value = false }
+}
+
+async function onCompact() {
+  if (!confirm('Summarize older messages to shorten this conversation?')) return
+  busy.value = true
+  try { await compactSession(props.sessionId); await load() }
+  catch (e) { error.value = e instanceof Error ? e.message : 'Compact failed' }
+  finally { busy.value = false }
+}
 
 async function load() {
   loading.value = true
@@ -38,9 +54,23 @@ function roleBorder(role: MessageRole): string {
 
 <template>
   <aside class="flex h-full flex-col overflow-hidden rounded-card border border-border bg-panel">
-    <header class="flex items-center justify-between gap-2 border-b border-border px-3 py-2.5">
-      <div class="truncate font-semibold" :title="title">{{ title || '(untitled)' }}</div>
-      <button class="text-sm text-muted hover:text-fg" title="Close" @click="emit('close')">✕</button>
+    <header class="flex items-center gap-2 border-b border-border px-3 py-2.5">
+      <div class="min-w-0 flex-1 truncate font-semibold" :title="title">{{ title || '(untitled)' }}</div>
+      <div class="flex shrink-0 items-center gap-1" :class="{ 'opacity-50 pointer-events-none': busy }">
+        <select
+          class="rounded-md border border-border bg-panel2 px-1.5 py-0.5 text-xs text-fg outline-none focus:border-accent"
+          title="Export"
+          @change="onExport(($event.target as HTMLSelectElement).value as 'md'|'txt'|'json'|'html'); ($event.target as HTMLSelectElement).value = ''"
+        >
+          <option value="">Export…</option>
+          <option value="md">Markdown</option>
+          <option value="txt">Text</option>
+          <option value="json">JSON</option>
+          <option value="html">HTML</option>
+        </select>
+        <button class="rounded-md border border-border bg-panel2 px-1.5 py-0.5 text-xs text-fg hover:border-accent" title="Compact history" @click="onCompact">Compact</button>
+        <button class="text-sm text-muted hover:text-fg" title="Close" @click="emit('close')">✕</button>
+      </div>
     </header>
 
     <p v-if="loading" class="p-6 text-center text-muted">Loading history…</p>
